@@ -6,7 +6,7 @@ CrabNBT combines best features of existing NBT crates, to create perfect solutio
 Big thanks to [simdnbt](https://github.com/azalea-rs/simdnbt) and [fastnbt](https://github.com/owengage/fastnbt) for ideas!
 
 ## Features
-🚧 Support for serializing to/from truct *(soon)*<br>
+🚧 Support for serializing to/from Struct *(soon)*<br>
 ✅ [Java string](https://docs.oracle.com/javase/8/docs/api/java/io/DataInput.html#modified-utf-8) support <br>
 ✅ NBT! macro for easy creation <br>
 ✅ Good system of getting values from NBT <br>
