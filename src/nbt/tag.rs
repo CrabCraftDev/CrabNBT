@@ -73,6 +73,24 @@ impl NbtTag {
         }
         bytes.freeze()
     }
+    
+    /// Serializes as single NBT tag without name.
+    pub fn serialize_tag(&self) -> Bytes {
+        let mut bytes = BytesMut::new();
+        bytes.put_u8(self.id());
+        bytes.put(self.serialize_raw());
+        bytes.freeze()
+    }
+
+
+    /// Serializes the NBT tag into bytes with a name and id.
+    pub fn serialize_named(&self, name: &str) -> Bytes {
+        let mut bytes = BytesMut::new();
+        bytes.put_u8(self.id());
+        bytes.put(NbtTag::String(name.to_string()).serialize_raw());
+        bytes.put(self.serialize_raw());
+        bytes.freeze()
+    }
 
     pub fn deserialize(bytes: &mut Bytes) -> Result<NbtTag, Error> {
         let tag_id = bytes.get_u8();
@@ -145,15 +163,6 @@ impl NbtTag {
             }
             _ => Err(Error::UnknownTagId(tag_id)),
         }
-    }
-
-    /// Serializes the NBT tag into bytes with a name and id.
-    pub fn serialize_named(&self, name: &str) -> Bytes {
-        let mut bytes = BytesMut::new();
-        bytes.put_u8(self.id());
-        bytes.put(NbtTag::String(name.to_string()).serialize_raw());
-        bytes.put(self.serialize_raw());
-        bytes.freeze()
     }
 
     pub fn extract_byte(&self) -> Option<i8> {
