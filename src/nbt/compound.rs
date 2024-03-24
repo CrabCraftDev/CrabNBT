@@ -46,10 +46,13 @@ impl NbtCompound {
         bytes.freeze()
     }
 
-    pub fn from_values(values: Vec<(String, NbtTag)>) -> Self {
-        Self {
-            child_tags: values.into_iter().collect(),
+    pub fn from_values(values: Vec<(&str, NbtTag)>) -> Self {
+        let mut child_tags = HashMap::new();
+        for (name, tag) in values {
+            let name_string = name.to_string();
+            child_tags.insert(name_string, tag);
         }
+        Self { child_tags }
     }
 
     pub fn get_byte(&self, name: &str) -> Option<i8> {

@@ -45,17 +45,17 @@ fn nbt_macro_complex_object() {
     let nbt_expected = Nbt::new(
         "root",
         NbtCompound::from_values(vec![
-            ("float".into(), 1.0_f32.into()),
-            ("key".into(), "value".into()),
-            ("long_array".into(), NbtTag::LongArray(vec![1])),
-            ("int_array".into(), NbtTag::IntArray(vec![1])),
+            ("float", 1.0_f32.into()),
+            ("key", "value".into()),
+            ("long_array", NbtTag::LongArray(vec![1])),
+            ("int_array", NbtTag::IntArray(vec![1])),
             (
-                "list".into(),
+                "list",
                 NbtTag::List(vec!["a".into(), "b".into(), "c".into()]),
             ),
             (
-                "nbt_inner".into(),
-                NbtCompound::from_values(vec![("key".into(), "sub value".into())]).into(),
+                "nbt_inner",
+                NbtCompound::from_values(vec![("key", "sub value".into())]).into(),
             ),
         ]),
     );

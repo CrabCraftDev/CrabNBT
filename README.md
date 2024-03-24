@@ -38,10 +38,10 @@ fn main() {
     let nbt = Nbt::new(
         "root",
         NbtCompound::from_values(vec![
-            ("float".into(), 1.0.into()),
-            ("key".into(), "value".to_string().into()),
-            ("nbt_inner".into(), NbtCompound::from_values(vec![
-                ("key".into(), "sub value".into()),
+            ("float", 1.0.into()),
+            ("key", "value".into()),
+            ("nbt_inner", NbtCompound::from_values(vec![
+                ("key", "sub value".into()),
             ]).into())
         ])
     );
