@@ -41,7 +41,7 @@ fn network_nbt() {
         }
     });
 
-    let bytes = expected_nbt.write(true);
+    let bytes = expected_nbt.write_unnamed();
 
     let nbt = Nbt::read(&mut bytes.clone(), true).unwrap();
 
@@ -55,5 +55,5 @@ fn correct_end_tags() {
     });
 
     let expected: &[u8] = b"\n\x0c\0\rWORLD_SURFACE\0\0\0\0\0";
-    assert_eq!(heightmap.write(true).as_ref(), expected)
+    assert_eq!(heightmap.write_unnamed().as_ref(), expected)
 }

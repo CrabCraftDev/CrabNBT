@@ -14,7 +14,7 @@ impl NbtCompound {
         NbtCompound { child_tags }
     }
 
-    pub fn deserialize(bytes: &mut Bytes) -> NbtCompound {
+    pub(crate) fn deserialize(bytes: &mut Bytes) -> NbtCompound {
         let mut compound_tags = HashMap::new();
 
         while !bytes.is_empty() {
@@ -37,7 +37,7 @@ impl NbtCompound {
         }
     }
 
-    pub fn serialize(&self) -> Bytes {
+    pub(crate) fn serialize(&self) -> Bytes {
         let mut bytes = BytesMut::new();
         for (name, tag) in &self.child_tags {
             bytes.put(tag.serialize_named(name));

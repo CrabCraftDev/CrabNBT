@@ -8,14 +8,14 @@ use std::ops::Deref;
 #[derive(Debug, Clone, PartialEq)]
 pub struct Nbt {
     pub name: String,
-    pub tag: NbtCompound,
+    pub root_tag: NbtCompound,
 }
 
 impl Nbt {
     pub fn new(name: &str, tag: NbtCompound) -> Self {
         Nbt {
             name: name.to_string(),
-            tag,
+            root_tag: tag,
         }
     }
 
@@ -33,20 +33,25 @@ impl Nbt {
 
         Ok(Nbt {
             name: compound_name,
-            tag: NbtCompound::deserialize(bytes),
+            root_tag: NbtCompound::deserialize(bytes),
         })
     }
 
-    pub fn write(&self, is_network: bool) -> Bytes {
+    pub fn write(&self) -> Bytes {
         let mut bytes = BytesMut::new();
         bytes.put_u8(COMPOUND_ID);
+        bytes.put(NbtTag::String(self.name.to_string()).serialize_raw());
 
-        if !is_network {
-            bytes.put(NbtTag::String(self.name.to_string()).serialize_raw());
-        }
+        bytes.put(self.root_tag.serialize());
+        bytes.freeze()
+    }
 
-        bytes.put(self.tag.serialize());
-
+    /// Writes Nbt tag, without name of root compound
+    /// Used in [Network NBT](https://wiki.vg/NBT#Network_NBT_(Java_Edition))
+    pub fn write_unnamed(&self) -> Bytes {
+        let mut bytes = BytesMut::new();
+        bytes.put_u8(COMPOUND_ID);
+        bytes.put(self.root_tag.serialize());
         bytes.freeze()
     }
 }
@@ -55,6 +60,6 @@ impl Deref for Nbt {
     type Target = NbtCompound;
 
     fn deref(&self) -> &Self::Target {
-        &self.tag
+        &self.root_tag
     }
 }
