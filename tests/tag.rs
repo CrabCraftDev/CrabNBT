@@ -47,3 +47,13 @@ fn network_nbt() {
 
     assert_eq!(nbt, expected_nbt);
 }
+
+#[test]
+fn correct_end_tags() {
+    let heightmap = nbt!("", {
+        "WORLD_SURFACE": [L;],
+    });
+
+    let expected: &[u8] = b"\n\x0c\0\rWORLD_SURFACE\0\0\0\0\0";
+    assert_eq!(heightmap.write(true).as_ref(), expected)
+}

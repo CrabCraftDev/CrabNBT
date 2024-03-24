@@ -46,7 +46,6 @@ impl Nbt {
         }
 
         bytes.put(self.tag.serialize());
-        bytes.put_u8(END_ID);
 
         bytes.freeze()
     }
