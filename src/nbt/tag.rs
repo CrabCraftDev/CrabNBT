@@ -49,7 +49,7 @@ impl NbtTag {
                 bytes.put_slice(&java_string);
             }
             NbtTag::List(list) => {
-                bytes.put_u8(list.first().unwrap().id());
+                bytes.put_u8(list.first().unwrap_or(&NbtTag::End).id());
                 bytes.put_i32(list.len() as i32);
                 for nbt_tag in list {
                     bytes.put(nbt_tag.serialize_raw())
@@ -73,7 +73,7 @@ impl NbtTag {
         }
         bytes.freeze()
     }
-    
+
     /// Serializes as single NBT tag without name.
     pub fn serialize_tag(&self) -> Bytes {
         let mut bytes = BytesMut::new();
@@ -81,7 +81,6 @@ impl NbtTag {
         bytes.put(self.serialize_raw());
         bytes.freeze()
     }
-
 
     /// Serializes the NBT tag into bytes with a name and id.
     pub fn serialize_named(&self, name: &str) -> Bytes {
