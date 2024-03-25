@@ -18,8 +18,7 @@ pub const LONG_ARRAY_ID: u8 = 12;
 
 pub fn get_nbt_string(bytes: &mut Bytes) -> Result<String, Error> {
     let len = bytes.get_u16() as usize;
-    let string_bytes = bytes[..len].to_vec();
+    let string_bytes = bytes.copy_to_bytes(len);
     let string = from_java_cesu8(&string_bytes).map_err(|_| Error::InvalidJavaString)?;
-    bytes.advance(len);
     Ok(string.to_string())
 }
