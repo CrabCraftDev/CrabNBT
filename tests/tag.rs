@@ -22,7 +22,7 @@ fn serialize_named() {
 #[test]
 fn deserialize_bigtest() {
     let bytes = Bytes::from(include_bytes!("data/bigtest.nbt") as &[u8]);
-    let nbt = Nbt::read(&mut bytes.clone(), false).unwrap();
+    let nbt = Nbt::read(&mut bytes.clone()).unwrap();
     let egg_name = nbt
         .get_compound("nested compound test")
         .and_then(|compound| compound.get_compound("egg"))
@@ -43,7 +43,7 @@ fn network_nbt() {
 
     let bytes = expected_nbt.write_unnamed();
 
-    let nbt = Nbt::read(&mut bytes.clone(), true).unwrap();
+    let nbt = Nbt::read_unnamed(&mut bytes.clone()).unwrap();
 
     assert_eq!(nbt, expected_nbt);
 }

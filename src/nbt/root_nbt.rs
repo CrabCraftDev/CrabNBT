@@ -19,20 +19,32 @@ impl Nbt {
         }
     }
 
-    pub fn read(bytes: &mut Bytes, is_network: bool) -> Result<Nbt, Error> {
+    pub fn read(bytes: &mut Bytes) -> Result<Nbt, Error> {
         let tag_type_id = bytes.get_u8();
 
         if tag_type_id != COMPOUND_ID {
             return Err(Error::NoRootCompound(tag_type_id));
         }
 
-        let mut compound_name = String::new();
-        if !is_network {
-            compound_name = get_nbt_string(bytes).unwrap();
-        }
+        let compound_name = get_nbt_string(bytes)?;
 
         Ok(Nbt {
             name: compound_name,
+            root_tag: NbtCompound::deserialize(bytes),
+        })
+    }
+
+    /// Reads Nbt tag, that doesn't contain the name of root compound
+    /// Used in [Network NBT](https://wiki.vg/NBT#Network_NBT_(Java_Edition))
+    pub fn read_unnamed(bytes: &mut Bytes) -> Result<Nbt, Error> {
+        let tag_type_id = bytes.get_u8();
+
+        if tag_type_id != COMPOUND_ID {
+            return Err(Error::NoRootCompound(tag_type_id));
+        }
+
+        Ok(Nbt {
+            name: String::new(),
             root_tag: NbtCompound::deserialize(bytes),
         })
     }

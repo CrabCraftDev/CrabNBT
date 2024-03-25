@@ -55,7 +55,7 @@ use bytes::Bytes;
 use crab_nbt::{nbt, Nbt, NbtCompound};
 
 fn example(bytes: &mut Bytes) {
-    let nbt = Nbt::read(bytes, false).unwrap();
+    let nbt = Nbt::read(bytes).unwrap();
     let egg_name = nbt
         .get_compound("nbt_inner")
         .and_then(|compound| compound.get_compound("egg"))
