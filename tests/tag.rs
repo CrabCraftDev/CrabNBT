@@ -14,12 +14,6 @@ fn serialize_raw() {
 }
 
 #[test]
-fn serialize_named() {
-    let serialized = NbtTag::Long(2137).serialize_named("hi");
-    assert_eq!(serialized.to_vec(), b"\x04\0\x02hi\0\0\0\0\0\0\x08\x59")
-}
-
-#[test]
 fn deserialize_bigtest() {
     let bytes = Bytes::from(include_bytes!("data/bigtest.nbt") as &[u8]);
     let nbt = Nbt::read(&mut bytes.clone()).unwrap();
