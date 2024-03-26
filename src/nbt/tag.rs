@@ -7,7 +7,7 @@ use derive_more::From;
 /// Enum representing the different types of NBT tags.
 /// Each variant corresponds to a different type of data that can be stored in an NBT tag.
 #[repr(u8)]
-#[derive(Debug, PartialEq, Clone, From)]
+#[derive(Clone, PartialEq, Debug, From)]
 pub enum NbtTag {
     End = END_ID,
     Byte(i8) = BYTE_ID,
@@ -25,11 +25,20 @@ pub enum NbtTag {
 }
 
 impl NbtTag {
-    pub fn id(&self) -> u8 {
+    /// Returns the numeric id associated with the data type.
+    pub const fn get_type_id(&self) -> u8 {
+        // See https://doc.rust-lang.org/reference/items/enumerations.html#pointer-casting
         unsafe { *(self as *const Self as *const u8) }
     }
 
-    pub fn serialize_raw(&self) -> Bytes {
+    pub fn serialize(&self) -> Bytes {
+        let mut bytes = BytesMut::new();
+        bytes.put_u8(self.get_type_id());
+        bytes.put(self.serialize_data());
+        bytes.freeze()
+    }
+
+    pub fn serialize_data(&self) -> Bytes {
         let mut bytes = BytesMut::new();
         match self {
             NbtTag::End => {}
@@ -49,14 +58,14 @@ impl NbtTag {
                 bytes.put_slice(&java_string);
             }
             NbtTag::List(list) => {
-                bytes.put_u8(list.first().unwrap_or(&NbtTag::End).id());
+                bytes.put_u8(list.first().unwrap_or(&NbtTag::End).get_type_id());
                 bytes.put_i32(list.len() as i32);
                 for nbt_tag in list {
-                    bytes.put(nbt_tag.serialize_raw())
+                    bytes.put(nbt_tag.serialize_data())
                 }
             }
             NbtTag::Compound(compound) => {
-                bytes.put(compound.serialize());
+                bytes.put(compound.serialize_content());
             }
             NbtTag::IntArray(int_array) => {
                 bytes.put_i32(int_array.len() as i32);
@@ -74,29 +83,12 @@ impl NbtTag {
         bytes.freeze()
     }
 
-    /// Serializes as single NBT tag without name.
-    pub fn serialize_tag(&self) -> Bytes {
-        let mut bytes = BytesMut::new();
-        bytes.put_u8(self.id());
-        bytes.put(self.serialize_raw());
-        bytes.freeze()
-    }
-
-    /// Serializes the NBT tag into bytes with a name and id.
-    pub fn serialize_named(&self, name: &str) -> Bytes {
-        let mut bytes = BytesMut::new();
-        bytes.put_u8(self.id());
-        bytes.put(NbtTag::String(name.to_string()).serialize_raw());
-        bytes.put(self.serialize_raw());
-        bytes.freeze()
-    }
-
-    pub fn deserialize(bytes: &mut Bytes) -> Result<NbtTag, Error> {
+    pub fn deserialize(bytes: &mut impl Buf) -> Result<NbtTag, Error> {
         let tag_id = bytes.get_u8();
-        Self::deserialize_raw(bytes, tag_id)
+        Self::deserialize_data(bytes, tag_id)
     }
 
-    pub fn deserialize_raw(bytes: &mut Bytes, tag_id: u8) -> Result<NbtTag, Error> {
+    pub fn deserialize_data(bytes: &mut impl Buf, tag_id: u8) -> Result<NbtTag, Error> {
         match tag_id {
             END_ID => Ok(NbtTag::End),
             BYTE_ID => {
@@ -125,7 +117,8 @@ impl NbtTag {
             }
             BYTE_ARRAY_ID => {
                 let len = bytes.get_i32() as usize;
-                Ok(NbtTag::ByteArray(bytes.copy_to_bytes(len)))
+                let byte_array = bytes.copy_to_bytes(len);
+                Ok(NbtTag::ByteArray(byte_array))
             }
             STRING_ID => Ok(NbtTag::String(get_nbt_string(bytes).unwrap())),
             LIST_ID => {
@@ -133,13 +126,13 @@ impl NbtTag {
                 let len = bytes.get_i32();
                 let mut list = Vec::with_capacity(len as usize);
                 for _ in 0..len {
-                    let tag = NbtTag::deserialize_raw(bytes, tag_type_id)?;
-                    assert_eq!(tag.id(), tag_type_id);
+                    let tag = NbtTag::deserialize_data(bytes, tag_type_id)?;
+                    assert_eq!(tag.get_type_id(), tag_type_id);
                     list.push(tag);
                 }
                 Ok(NbtTag::List(list))
             }
-            COMPOUND_ID => Ok(NbtTag::Compound(NbtCompound::deserialize(bytes))),
+            COMPOUND_ID => Ok(NbtTag::Compound(NbtCompound::deserialize_content(bytes)?)),
             INT_ARRAY_ID => {
                 let len = bytes.get_i32() as usize;
                 let mut int_array = Vec::with_capacity(len);

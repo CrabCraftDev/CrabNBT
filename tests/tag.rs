@@ -2,21 +2,16 @@ use bytes::Bytes;
 use crab_nbt::{nbt, Nbt, NbtTag};
 
 #[test]
-fn serialize_raw_string() {
-    let serialized = NbtTag::String("How are you?".to_string()).serialize_raw();
-    assert_eq!(serialized.to_vec(), b"\0\x0cHow are you?")
+fn serialize_data_string() {
+    let test_string = b"\0\x0cHow are you?"; // Length (12) + String
+    let serialized = NbtTag::String("How are you?".to_string()).serialize_data();
+    assert_eq!(serialized.to_vec(), test_string)
 }
 
 #[test]
-fn serialize_raw() {
-    let serialized = NbtTag::Long(2137).serialize_raw();
+fn serialize_data() {
+    let serialized = NbtTag::Long(2137).serialize_data();
     assert_eq!(serialized.to_vec(), 2137_i64.to_be_bytes().to_vec())
-}
-
-#[test]
-fn serialize_named() {
-    let serialized = NbtTag::Long(2137).serialize_named("hi");
-    assert_eq!(serialized.to_vec(), b"\x04\0\x02hi\0\0\0\0\0\0\x08\x59")
 }
 
 #[test]

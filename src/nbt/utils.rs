@@ -1,5 +1,5 @@
 use crate::error::Error;
-use bytes::{Buf, Bytes};
+use bytes::Buf;
 use cesu8::from_java_cesu8;
 
 pub const END_ID: u8 = 0;
@@ -16,7 +16,7 @@ pub const COMPOUND_ID: u8 = 10;
 pub const INT_ARRAY_ID: u8 = 11;
 pub const LONG_ARRAY_ID: u8 = 12;
 
-pub fn get_nbt_string(bytes: &mut Bytes) -> Result<String, Error> {
+pub fn get_nbt_string(bytes: &mut impl Buf) -> Result<String, Error> {
     let len = bytes.get_u16() as usize;
     let string_bytes = bytes.copy_to_bytes(len);
     let string = from_java_cesu8(&string_bytes).map_err(|_| Error::InvalidJavaString)?;

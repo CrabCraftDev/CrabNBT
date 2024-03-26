@@ -2,57 +2,52 @@ use bytes::{Buf, BufMut, Bytes, BytesMut};
 use crab_nbt::nbt::tag::NbtTag;
 use crab_nbt::nbt::utils::{get_nbt_string, END_ID};
 use derive_more::Into;
-use std::collections::HashMap;
+use std::collections::{hash_map::IntoIter, HashMap};
 
-#[derive(Debug, PartialEq, Clone, Default, Into)]
+use crate::{error::Error, Nbt};
+
+#[derive(Clone, PartialEq, Debug, Default, Into)]
 pub struct NbtCompound {
     pub child_tags: HashMap<String, NbtTag>,
 }
 
 impl NbtCompound {
-    pub fn new(child_tags: HashMap<String, NbtTag>) -> NbtCompound {
-        NbtCompound { child_tags }
+    pub fn new() -> NbtCompound {
+        NbtCompound {
+            child_tags: HashMap::new(),
+        }
     }
 
-    pub(crate) fn deserialize(bytes: &mut Bytes) -> NbtCompound {
-        let mut compound_tags = HashMap::new();
+    pub fn deserialize_content(bytes: &mut impl Buf) -> Result<NbtCompound, Error> {
+        let mut child_tags = HashMap::new();
 
-        while !bytes.is_empty() {
+        while bytes.has_remaining() {
             let tag_id = bytes.get_u8();
             if tag_id == END_ID {
                 break;
             }
 
-            let name = get_nbt_string(bytes).unwrap();
+            let name = get_nbt_string(bytes)?;
 
-            if let Ok(tag) = NbtTag::deserialize_raw(bytes, tag_id) {
-                compound_tags.insert(name, tag);
+            if let Ok(tag) = NbtTag::deserialize_data(bytes, tag_id) {
+                child_tags.insert(name, tag);
             } else {
                 break;
             }
         }
 
-        NbtCompound {
-            child_tags: compound_tags,
-        }
+        Ok(NbtCompound { child_tags })
     }
 
-    pub(crate) fn serialize(&self) -> Bytes {
+    pub fn serialize_content(&self) -> Bytes {
         let mut bytes = BytesMut::new();
         for (name, tag) in &self.child_tags {
-            bytes.put(tag.serialize_named(name));
+            bytes.put_u8(tag.get_type_id());
+            bytes.put(NbtTag::String(name.clone()).serialize_data());
+            bytes.put(tag.serialize_data());
         }
         bytes.put_u8(END_ID);
         bytes.freeze()
-    }
-
-    pub fn from_values(values: Vec<(&str, NbtTag)>) -> Self {
-        let mut child_tags = HashMap::new();
-        for (name, tag) in values {
-            let name_string = name.to_string();
-            child_tags.insert(name_string, tag);
-        }
-        Self { child_tags }
     }
 
     pub fn get_byte(&self, name: &str) -> Option<i8> {
@@ -111,5 +106,41 @@ impl NbtCompound {
         self.child_tags
             .get(name)
             .and_then(|tag| tag.extract_long_array())
+    }
+}
+
+impl From<Nbt> for NbtCompound {
+    fn from(value: Nbt) -> Self {
+        value.root_tag
+    }
+}
+
+impl FromIterator<(String, NbtTag)> for NbtCompound {
+    fn from_iter<T: IntoIterator<Item = (String, NbtTag)>>(iter: T) -> Self {
+        Self {
+            child_tags: HashMap::from_iter(iter),
+        }
+    }
+}
+
+impl IntoIterator for NbtCompound {
+    type Item = (String, NbtTag);
+    type IntoIter = IntoIter<String, NbtTag>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.child_tags.into_iter()
+    }
+}
+
+impl Extend<(String, NbtTag)> for NbtCompound {
+    fn extend<T: IntoIterator<Item = (String, NbtTag)>>(&mut self, iter: T) {
+        self.child_tags.extend(iter)
+    }
+}
+
+// Rust's AsRef is currently not reflexive so we need to implement it manually
+impl AsRef<NbtCompound> for NbtCompound {
+    fn as_ref(&self) -> &NbtCompound {
+        self
     }
 }

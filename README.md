@@ -27,8 +27,9 @@ fn main() {
     let nbt = nbt!("root nbt_inner name", {
         "float": 1.0,
         "key": "value",
-        "long_array": [L; 1],
-        "int_array": [Int; 1],
+        "long_array": [L; 1, 2],
+        "int_array": [Int; 1, 10, 25],
+        "byte_array": [B; 0, 1, 0, 0, 1],
         "list": ["a", "b", "c"],
         "nbt_inner": {
             "key": "sub value"
@@ -36,12 +37,12 @@ fn main() {
     });
 
     let nbt = Nbt::new(
-        "root",
-        NbtCompound::from_values(vec![
-            ("float", 1.0.into()),
-            ("key", "value".into()),
-            ("nbt_inner", NbtCompound::from_values(vec![
-                ("key", "sub value".into()),
+        "root".to_owned(),
+        NbtCompound::from_iter([
+            ("float".to_owned(), 1.0.into()),
+            ("key".to_owned(), "value".into()),
+            ("nbt_inner".to_owned(), NbtCompound::from_iter([
+                ("key".to_owned(), "sub value".into()),
             ]).into())
         ])
     );

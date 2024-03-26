@@ -42,21 +42,25 @@ fn nbt_macro_panics_on_nonexistent_key() {
 
 #[test]
 fn nbt_macro_complex_object() {
+    let key = "a_key".to_owned();
+    let some_bytes: Vec<u8> = vec![0, 1, 2, 3];
+
     let nbt_expected = Nbt::new(
-        "root",
-        NbtCompound::from_values(vec![
-            ("float", 1.0_f32.into()),
-            ("key", "value".into()),
-            ("long_array", NbtTag::LongArray(vec![1])),
-            ("int_array", NbtTag::IntArray(vec![1])),
+        "root".to_owned(),
+        NbtCompound::from_iter([
+            ("float".to_owned(), 1.0_f32.into()),
+            ("key".to_owned(), "value".into()),
+            ("long_array".to_owned(), NbtTag::LongArray(vec![1])),
+            ("int_array".to_owned(), NbtTag::IntArray(vec![1])),
             (
-                "list",
+                "list".to_owned(),
                 NbtTag::List(vec!["a".into(), "b".into(), "c".into()]),
             ),
             (
-                "nbt_inner",
-                NbtCompound::from_values(vec![("key", "sub value".into())]).into(),
+                "nbt_inner".to_owned(),
+                NbtCompound::from_iter([("key".to_owned(), "sub value".into())]).into(),
             ),
+            (key.clone(), some_bytes.clone().into()),
         ]),
     );
 
@@ -68,7 +72,8 @@ fn nbt_macro_complex_object() {
         "list": ["a", "b", "c"],
         "nbt_inner": {
             "key": "sub value"
-        }
+        },
+        key: some_bytes
     });
 
     assert_eq!(nbt.child_tags, nbt_expected.child_tags);
