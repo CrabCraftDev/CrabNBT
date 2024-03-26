@@ -206,6 +206,13 @@ impl NbtTag {
         }
     }
 
+    pub fn extract_bool(&self) -> Option<bool> {
+        match self {
+            NbtTag::Byte(byte) => Some(*byte != 0),
+            _ => None,
+        }
+    }
+
     pub fn extract_byte_array(&self) -> Option<&Vec<u8>> {
         match self {
             NbtTag::ByteArray(byte_array) => Some(byte_array),
@@ -252,5 +259,11 @@ impl NbtTag {
 impl From<&str> for NbtTag {
     fn from(value: &str) -> Self {
         NbtTag::String(value.to_string())
+    }
+}
+
+impl From<bool> for NbtTag {
+    fn from(value: bool) -> Self {
+        NbtTag::Byte(value as i8)
     }
 }
