@@ -80,6 +80,10 @@ impl NbtCompound {
             .and_then(|tag| tag.extract_double())
     }
 
+    pub fn get_bool(&self, name: &str) -> Option<bool> {
+        self.child_tags.get(name).and_then(|tag| tag.extract_bool())
+    }
+
     pub fn get_string(&self, name: &str) -> Option<&String> {
         self.child_tags
             .get(name)

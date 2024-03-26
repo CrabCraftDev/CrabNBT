@@ -197,6 +197,13 @@ impl NbtTag {
         }
     }
 
+    pub fn extract_bool(&self) -> Option<bool> {
+        match self {
+            NbtTag::Byte(byte) => Some(*byte != 0),
+            _ => None,
+        }
+    }
+
     pub fn extract_byte_array(&self) -> Option<Bytes> {
         match self {
             // Note: Bytes are free to clone, so we can hand out an owned type
@@ -250,5 +257,11 @@ impl From<&str> for NbtTag {
 impl From<&[u8]> for NbtTag {
     fn from(value: &[u8]) -> Self {
         NbtTag::ByteArray(Bytes::copy_from_slice(value))
+    }
+}
+
+impl From<bool> for NbtTag {
+    fn from(value: bool) -> Self {
+        NbtTag::Byte(value as i8)
     }
 }
