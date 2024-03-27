@@ -25,8 +25,8 @@ pub enum NbtTag {
 }
 
 impl NbtTag {
-    /// Returns the id associated with the data type
-    pub fn id(&self) -> u8 {
+    /// Returns the numeric id associated with the data type.
+    pub const fn id(&self) -> u8 {
         // See https://doc.rust-lang.org/reference/items/enumerations.html#pointer-casting
         unsafe { *(self as *const Self as *const u8) }
     }
@@ -34,12 +34,12 @@ impl NbtTag {
     pub fn serialize(&self) -> Bytes {
         let mut bytes = BytesMut::new();
         bytes.put_u8(self.id());
-        bytes.put(self.serialize_raw());
+        bytes.put(self.serialize_data());
         bytes.freeze()
     }
 
-    /// Serializes tag data into bytes
-    pub fn serialize_raw(&self) -> Bytes {
+    /// Serializes tag data into bytes.
+    pub fn serialize_data(&self) -> Bytes {
         let mut bytes = BytesMut::new();
         match self {
             NbtTag::End => {}
@@ -62,11 +62,11 @@ impl NbtTag {
                 bytes.put_u8(list.first().unwrap_or(&NbtTag::End).id());
                 bytes.put_i32(list.len() as i32);
                 for nbt_tag in list {
-                    bytes.put(nbt_tag.serialize_raw())
+                    bytes.put(nbt_tag.serialize_data())
                 }
             }
             NbtTag::Compound(compound) => {
-                bytes.put(compound.serialize_raw());
+                bytes.put(compound.serialize_data());
             }
             NbtTag::IntArray(int_array) => {
                 bytes.put_i32(int_array.len() as i32);
@@ -86,11 +86,11 @@ impl NbtTag {
 
     pub fn deserialize(bytes: &mut Bytes) -> Result<NbtTag, Error> {
         let tag_id = bytes.get_u8();
-        Self::deserialize_raw(bytes, tag_id)
+        Self::deserialize_data(bytes, tag_id)
     }
 
-    /// Deserializes tag data from bytes
-    pub fn deserialize_raw(bytes: &mut Bytes, tag_id: u8) -> Result<NbtTag, Error> {
+    /// Deserializes tag data from bytes.
+    pub fn deserialize_data(bytes: &mut Bytes, tag_id: u8) -> Result<NbtTag, Error> {
         match tag_id {
             END_ID => Ok(NbtTag::End),
             BYTE_ID => {
@@ -129,13 +129,13 @@ impl NbtTag {
                 let len = bytes.get_i32();
                 let mut list = Vec::with_capacity(len as usize);
                 for _ in 0..len {
-                    let tag = NbtTag::deserialize_raw(bytes, tag_type_id)?;
+                    let tag = NbtTag::deserialize_data(bytes, tag_type_id)?;
                     assert_eq!(tag.id(), tag_type_id);
                     list.push(tag);
                 }
                 Ok(NbtTag::List(list))
             }
-            COMPOUND_ID => Ok(NbtTag::Compound(NbtCompound::deserialize_raw(bytes)?)),
+            COMPOUND_ID => Ok(NbtTag::Compound(NbtCompound::deserialize_data(bytes)?)),
             INT_ARRAY_ID => {
                 let len = bytes.get_i32() as usize;
                 let mut int_array = Vec::with_capacity(len);

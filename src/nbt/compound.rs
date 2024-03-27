@@ -13,15 +13,15 @@ pub struct NbtCompound {
 }
 
 impl NbtCompound {
-    /// Creates new, empty compound
+    /// Creates new, empty compound.
     pub fn new() -> NbtCompound {
         NbtCompound {
             child_tags: HashMap::new(),
         }
     }
 
-    /// Reads compound data from bytes
-    pub fn deserialize_raw(bytes: &mut Bytes) -> Result<NbtCompound, Error> {
+    /// Deserializes compound data from bytes.
+    pub fn deserialize_data(bytes: &mut Bytes) -> Result<NbtCompound, Error> {
         let mut child_tags = HashMap::new();
 
         while !bytes.is_empty() {
@@ -32,7 +32,7 @@ impl NbtCompound {
 
             let name = get_nbt_string(bytes)?;
 
-            if let Ok(tag) = NbtTag::deserialize_raw(bytes, tag_id) {
+            if let Ok(tag) = NbtTag::deserialize_data(bytes, tag_id) {
                 child_tags.insert(name, tag);
             } else {
                 break;
@@ -42,13 +42,13 @@ impl NbtCompound {
         Ok(NbtCompound { child_tags })
     }
 
-    /// Writes compound data into bytes
-    pub fn serialize_raw(&self) -> Bytes {
+    /// Serializes compounds content into bytes.
+    pub fn serialize_data(&self) -> Bytes {
         let mut bytes = BytesMut::new();
         for (name, tag) in &self.child_tags {
             bytes.put_u8(tag.id());
-            bytes.put(NbtTag::String(name.to_string()).serialize_raw());
-            bytes.put(tag.serialize_raw());
+            bytes.put(NbtTag::String(name.to_string()).serialize_data());
+            bytes.put(tag.serialize_data());
         }
         bytes.put_u8(END_ID);
         bytes.freeze()

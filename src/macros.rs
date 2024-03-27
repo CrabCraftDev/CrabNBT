@@ -29,9 +29,9 @@
 /// let value = vec![0, 1, 2];
 /// let other_value = vec![3, 2, 1];
 /// let nbt =  nbt!("root", {
-/// var_as_key: "wohoo!",
-/// "the_other_way": value,
-/// other_key: other_value,
+///     var_as_key: "wohoo!",
+///     "the_other_way": value,
+///     other_key: other_value,
 /// });
 /// ```
 ///
