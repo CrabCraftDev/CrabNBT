@@ -16,7 +16,7 @@ pub enum NbtTag {
     Long(i64) = LONG_ID,
     Float(f32) = FLOAT_ID,
     Double(f64) = DOUBLE_ID,
-    ByteArray(Vec<u8>) = BYTE_ARRAY_ID,
+    ByteArray(Bytes) = BYTE_ARRAY_ID,
     String(String) = STRING_ID,
     List(Vec<NbtTag>) = LIST_ID,
     Compound(NbtCompound) = COMPOUND_ID,
@@ -125,9 +125,7 @@ impl NbtTag {
             }
             BYTE_ARRAY_ID => {
                 let len = bytes.get_i32() as usize;
-                let byte_array = bytes[..len].to_vec();
-                bytes.advance(len);
-                Ok(NbtTag::ByteArray(byte_array))
+                Ok(NbtTag::ByteArray(bytes.copy_to_bytes(len)))
             }
             STRING_ID => Ok(NbtTag::String(get_nbt_string(bytes).unwrap())),
             LIST_ID => {
@@ -206,9 +204,10 @@ impl NbtTag {
         }
     }
 
-    pub fn extract_byte_array(&self) -> Option<&Vec<u8>> {
+    pub fn extract_byte_array(&self) -> Option<Bytes> {
         match self {
-            NbtTag::ByteArray(byte_array) => Some(byte_array),
+            // Note: Bytes are free to clone, so we can hand out an owned type
+            NbtTag::ByteArray(byte_array) => Some(byte_array.clone()),
             _ => None,
         }
     }
@@ -252,5 +251,11 @@ impl NbtTag {
 impl From<&str> for NbtTag {
     fn from(value: &str) -> Self {
         NbtTag::String(value.to_string())
+    }
+}
+
+impl From<&[u8]> for NbtTag {
+    fn from(value: &[u8]) -> Self {
+        NbtTag::ByteArray(Bytes::copy_from_slice(value))
     }
 }
