@@ -27,21 +27,33 @@ fn main() {
     let nbt = nbt!("root nbt_inner name", {
         "float": 1.0,
         "key": "value",
-        "long_array": [L; 1],
-        "int_array": [Int; 1],
+        "long_array": [L; 1, 2],
+        "int_array": [Int; 1, 10, 25],
+        "byte_array": [B; 0, 1, 0, 0, 1],
         "list": ["a", "b", "c"],
         "nbt_inner": {
             "key": "sub value"
         }
     });
 
+    // The macro can also take variables to use data calculated at runtime
+    let var_as_key = "some_key".to_owned();
+    let other_key = "other_key".to_owned();
+    let value = vec![0, 1, 2];
+    let other_value = vec![3, 2, 1];
+    let nbt =  nbt!("root", {
+        var_as_key: "wohoo!",
+        "the_other_way": value,
+        other_key: other_value,
+    });
+
     let nbt = Nbt::new(
-        "root",
-        NbtCompound::from_values(vec![
-            ("float", 1.0.into()),
-            ("key", "value".into()),
-            ("nbt_inner", NbtCompound::from_values(vec![
-                ("key", "sub value".into()),
+        "root".to_owned(),
+        NbtCompound::from_iter([
+            ("float".to_owned(), 1.0.into()),
+            ("key".to_owned(), "value".into()),
+            ("nbt_inner".to_owned(), NbtCompound::from_iter([
+                ("key".to_owned(), "sub value".into()),
             ]).into())
         ])
     );
