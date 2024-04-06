@@ -33,7 +33,7 @@ impl Nbt {
 
         Ok(Nbt {
             name: get_nbt_string(bytes)?,
-            root_tag: NbtCompound::deserialize_data(bytes)?,
+            root_tag: NbtCompound::deserialize_content(bytes)?,
         })
     }
 
@@ -48,7 +48,7 @@ impl Nbt {
 
         Ok(Nbt {
             name: String::new(),
-            root_tag: NbtCompound::deserialize_data(bytes)?,
+            root_tag: NbtCompound::deserialize_content(bytes)?,
         })
     }
 
@@ -56,8 +56,7 @@ impl Nbt {
         let mut bytes = BytesMut::new();
         bytes.put_u8(COMPOUND_ID);
         bytes.put(NbtTag::String(self.name.to_string()).serialize_data());
-
-        bytes.put(self.root_tag.serialize_data());
+        bytes.put(self.root_tag.serialize_content());
         bytes.freeze()
     }
 
@@ -66,7 +65,7 @@ impl Nbt {
     pub fn write_unnamed(&self) -> Bytes {
         let mut bytes = BytesMut::new();
         bytes.put_u8(COMPOUND_ID);
-        bytes.put(self.root_tag.serialize_data());
+        bytes.put(self.root_tag.serialize_content());
         bytes.freeze()
     }
 }

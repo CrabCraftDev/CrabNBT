@@ -6,22 +6,19 @@ use std::collections::{hash_map::IntoIter, HashMap};
 
 use crate::{error::Error, Nbt};
 
-/// Compound of named nbt tags.
 #[derive(Clone, PartialEq, Debug, Default, Into)]
 pub struct NbtCompound {
     pub child_tags: HashMap<String, NbtTag>,
 }
 
 impl NbtCompound {
-    /// Creates new, empty compound.
     pub fn new() -> NbtCompound {
         NbtCompound {
             child_tags: HashMap::new(),
         }
     }
 
-    /// Deserializes compound data from bytes.
-    pub fn deserialize_data(bytes: &mut Bytes) -> Result<NbtCompound, Error> {
+    pub fn deserialize_content(bytes: &mut Bytes) -> Result<NbtCompound, Error> {
         let mut child_tags = HashMap::new();
 
         while !bytes.is_empty() {
@@ -42,12 +39,11 @@ impl NbtCompound {
         Ok(NbtCompound { child_tags })
     }
 
-    /// Serializes compounds content into bytes.
-    pub fn serialize_data(&self) -> Bytes {
+    pub fn serialize_content(&self) -> Bytes {
         let mut bytes = BytesMut::new();
         for (name, tag) in &self.child_tags {
             bytes.put_u8(tag.id());
-            bytes.put(NbtTag::String(name.to_string()).serialize_data());
+            bytes.put(NbtTag::String(name.clone()).serialize_data());
             bytes.put(tag.serialize_data());
         }
         bytes.put_u8(END_ID);

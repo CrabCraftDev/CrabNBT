@@ -66,7 +66,7 @@ impl NbtTag {
                 }
             }
             NbtTag::Compound(compound) => {
-                bytes.put(compound.serialize_data());
+                bytes.put(compound.serialize_content());
             }
             NbtTag::IntArray(int_array) => {
                 bytes.put_i32(int_array.len() as i32);
@@ -135,7 +135,7 @@ impl NbtTag {
                 }
                 Ok(NbtTag::List(list))
             }
-            COMPOUND_ID => Ok(NbtTag::Compound(NbtCompound::deserialize_data(bytes)?)),
+            COMPOUND_ID => Ok(NbtTag::Compound(NbtCompound::deserialize_content(bytes)?)),
             INT_ARRAY_ID => {
                 let len = bytes.get_i32() as usize;
                 let mut int_array = Vec::with_capacity(len);
