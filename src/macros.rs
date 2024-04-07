@@ -9,7 +9,7 @@
 /// use crab_nbt::nbt;
 ///
 /// let key = "key".to_owned();
-/// let value: Vec<u8> = vec![0, 1, 2, 3];
+/// let value: &[u8] = &[0, 1, 2, 3];
 /// let nbt = nbt!("root nbt_inner name", {
 ///     "float": 1.0,
 ///     key: "value",
@@ -26,8 +26,8 @@
 /// // The macro can also take variables to use data calculated at runtime
 /// let var_as_key = "some_key".to_owned();
 /// let other_key = "other_key".to_owned();
-/// let value = vec![0, 1, 2];
-/// let other_value = vec![3, 2, 1];
+/// let value: &[u8] = &[0, 1, 2];
+/// let other_value: &[u8] = &[3, 2, 1];
 /// let nbt =  nbt!("root", {
 ///     var_as_key: "wohoo!",
 ///     "the_other_way": value,
@@ -81,7 +81,7 @@ macro_rules! nbt_inner {
     };
     ([B; $($lit:literal),* $(,)?]) => { nbt_inner!([Byte; $($lit),*]) };
     ([Byte; $($lit:literal),* $(,)?]) => {
-        $crate::NbtTag::ByteArray(::std::vec![$($lit),*])
+        $crate::NbtTag::ByteArray(::bytes::Bytes::from_iter([$($lit),*]))
     };
     ([$($lit:literal),* $(,)?]) => {
         $crate::NbtTag::List(::std::vec![$($lit.into()),*])
