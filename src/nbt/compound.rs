@@ -50,6 +50,10 @@ impl NbtCompound {
         bytes.freeze()
     }
 
+    pub fn put(&mut self, name: String, value: impl Into<NbtTag>) {
+        self.child_tags.insert(name, value.into());
+    }
+
     pub fn get_byte(&self, name: &str) -> Option<i8> {
         self.child_tags.get(name).and_then(|tag| tag.extract_byte())
     }
