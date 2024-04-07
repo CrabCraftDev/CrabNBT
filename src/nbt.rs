@@ -84,9 +84,13 @@ impl From<NbtCompound> for Nbt {
     }
 }
 
-impl AsRef<NbtCompound> for Nbt {
-    fn as_ref(&self) -> &NbtCompound {
-        &self.root_tag
+impl<T> AsRef<T> for Nbt
+where
+    T: ?Sized,
+    <Nbt as Deref>::Target: AsRef<T>,
+{
+    fn as_ref(&self) -> &T {
+        self.deref().as_ref()
     }
 }
 

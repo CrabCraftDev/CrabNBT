@@ -138,3 +138,10 @@ impl Extend<(String, NbtTag)> for NbtCompound {
         self.child_tags.extend(iter)
     }
 }
+
+// Rust's AsRef is currently not reflexive so we need to implement it manually
+impl AsRef<NbtCompound> for NbtCompound {
+    fn as_ref(&self) -> &NbtCompound {
+        self
+    }
+}

@@ -36,17 +36,6 @@ fn main() {
         }
     });
 
-    // The macro can also take variables to use data calculated at runtime
-    let var_as_key = "some_key".to_owned();
-    let other_key = "other_key".to_owned();
-    let value = vec![0, 1, 2];
-    let other_value = vec![3, 2, 1];
-    let nbt =  nbt!("root", {
-        var_as_key: "wohoo!",
-        "the_other_way": value,
-        other_key: other_value,
-    });
-
     let nbt = Nbt::new(
         "root".to_owned(),
         NbtCompound::from_iter([
