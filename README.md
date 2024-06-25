@@ -22,31 +22,29 @@ cargo add crab_nbt
 ```rust
 use crab_nbt::{nbt, Nbt, NbtCompound};
 
-fn main() {
-    // Using NBT macro
-    let nbt = nbt!("root nbt_inner name", {
-        "float": 1.0,
-        "key": "value",
-        "long_array": [L; 1, 2],
-        "int_array": [Int; 1, 10, 25],
-        "byte_array": [B; 0, 1, 0, 0, 1],
-        "list": ["a", "b", "c"],
-        "nbt_inner": {
-            "key": "sub value"
-        }
-    });
+// Using NBT macro
+let nbt = nbt!("root nbt_inner name", {
+    "float": 1.0,
+    "key": "value",
+    "long_array": [L; 1, 2],
+    "int_array": [Int; 1, 10, 25],
+    "byte_array": [B; 0, 1, 0, 0, 1],
+    "list": ["a", "b", "c"],
+    "nbt_inner": {
+        "key": "sub value"
+    }
+});
 
-    let nbt = Nbt::new(
-        "root".to_owned(),
-        NbtCompound::from_iter([
-            ("float".to_owned(), 1.0.into()),
-            ("key".to_owned(), "value".into()),
-            ("nbt_inner".to_owned(), NbtCompound::from_iter([
-                ("key".to_owned(), "sub value".into()),
-            ]).into())
-        ])
-    );
-}
+let nbt = Nbt::new(
+    "root".to_owned(),
+    NbtCompound::from_iter([
+        ("float".to_owned(), 1.0.into()),
+        ("key".to_owned(), "value".into()),
+        ("nbt_inner".to_owned(), NbtCompound::from_iter([
+            ("key".to_owned(), "sub value".into()),
+        ]).into())
+    ])
+);
 ```
 
 ## Deserializing
