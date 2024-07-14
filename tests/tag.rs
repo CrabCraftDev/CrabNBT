@@ -52,3 +52,25 @@ fn correct_end_tags() {
     let expected: &[u8] = b"\n\x0c\0\rWORLD_SURFACE\0\0\0\0\0";
     assert_eq!(heightmap.write_unnamed().as_ref(), expected)
 }
+
+#[test]
+fn nested_tag_compounds() {
+    let original_nbt = nbt!("", {
+        "level1": {
+            "nested": {
+                "key": "value"
+            }
+        },
+        "list": [
+            {
+                "key": "value"
+            }
+        ]
+    });
+
+    let bytes = original_nbt.write_unnamed();
+
+    let deserialized_nbt = Nbt::read_unnamed(&mut bytes.clone()).unwrap();
+
+    assert_eq!(deserialized_nbt, original_nbt);
+}
