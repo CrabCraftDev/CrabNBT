@@ -88,6 +88,7 @@ macro_rules! nbt_inner {
         $crate::NbtTag::List(::std::vec![$($lit.into()),*])
     };
     ([$($t:tt),* $(,)?]) => {
-        $crate::NbtTag::List(::std::vec![$($t.into()),*])
-    }
+        $crate::NbtTag::List(::std::vec![$(nbt_inner!($t).into()),*])
+    };
+
 }
