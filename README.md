@@ -69,11 +69,11 @@ fn example(bytes: &mut Bytes) {
 ## Serde
 *Requires `serde` feature.*
 
-```ignore
-use crab_nbt::serde::arrays::IntArray;
+```rust
+use crab_nbt::serde::{arrays::IntArray, ser::to_bytes_unnamed, de::from_bytes_unnamed};
 use serde::{Deserialize, Serialize};
 
-#[derive(Deserialize, PartialEq, Debug)]
+#[derive(Serialize, Deserialize, PartialEq, Debug)]
 struct Test {
     number: i32,
     #[serde(with = "IntArray")]
@@ -85,8 +85,8 @@ fn cycle() {
         number: 5,
         int_array: vec![7, 8]
     };
-    let bytes = to_bytes_unnamed(&test).unwrap();
-    let recreated_struct: Test = from_bytes_unnamed(&mut expected).unwrap();
+    let mut bytes = to_bytes_unnamed(&test).unwrap();
+    let recreated_struct: Test = from_bytes_unnamed(&mut bytes).unwrap();
     
     assert_eq!(test, recreated_struct);
 }
