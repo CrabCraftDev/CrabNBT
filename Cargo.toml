@@ -9,15 +9,17 @@ readme = "README.md"
 license = "GPL-3.0-only"
 version = "0.1.3"
 edition = "2021"
-exclude = ["tests"]
+exclude = ["tests", ".github"]
 
 [features]
-full = ["macro"]
+full = ["macro", "serde"]
 default = ["macro"]
 macro = []
+serde = ["dep:serde"]
 
 [dependencies]
 bytes = "1.7.0"
 cesu8 = "1.1.0"
 derive_more = { version = "1.0.0-beta.6", features = ["into", "from"] }
 thiserror = "1.0.61"
+serde = { version = "1.0.209", optional = true, features = ["derive"] }

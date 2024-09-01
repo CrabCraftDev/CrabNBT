@@ -2,16 +2,16 @@
 Up-to-date Rust crate for easy and intuitive working with NBT data.
 
 ## Why not other libraries?
-CrabNBT combines best features of existing NBT crates, to create perfect solution.<br>
+CrabNBT combines best features of existing NBT crates, to create perfect, easy to use solution.<br>
 Big thanks to [simdnbt](https://github.com/azalea-rs/simdnbt) and [fastnbt](https://github.com/owengage/fastnbt) for ideas!
 
 ## Features
-🚧 Support for serializing to/from Struct *(soon)*<br>
+✅ Support for serializing to/from Struct (serde)<br>
 ✅ [Java string](https://docs.oracle.com/javase/8/docs/api/java/io/DataInput.html#modified-utf-8) support <br>
-✅ NBT! macro for easy creation <br>
-✅ Good system of getting values from NBT <br>
-✅ Serializing for single tags <br>
-✅ Support of [Network NBT](https://wiki.vg/NBT#Network_NBT_(Java_Edition))
+✅ `nbt!` macro for easy creation <br>
+✅ Easy to use system of retrieving values from NBT <br>
+✅ Serialization support for individual tags <br>
+✅ Support for [Network NBT](https://wiki.vg/NBT#Network_NBT_(Java_Edition))
 
 ## Installing
 ```shell
@@ -45,6 +45,9 @@ let nbt = Nbt::new(
         ]).into())
     ])
 );
+
+let network_bytes = nbt.write_unnamed();
+let normal_bytes = nbt.write();
 ```
 
 ## Deserializing
@@ -60,5 +63,31 @@ fn example(bytes: &mut Bytes) {
         .and_then(|compound| compound.get_compound("egg"))
         .and_then(|compound| compound.get_string("name"))
         .unwrap();
+}
+```
+
+## Serde
+*Requires `serde` feature.*
+
+```ignore
+use crab_nbt::serde::arrays::IntArray;
+use serde::{Deserialize, Serialize};
+
+#[derive(Deserialize, PartialEq, Debug)]
+struct Test {
+    number: i32,
+    #[serde(with = "IntArray")]
+    int_array: Vec<i32>,
+}
+
+fn cycle() {
+    let test = Test {
+        number: 5,
+        int_array: vec![7, 8]
+    };
+    let bytes = to_bytes_unnamed(&test).unwrap();
+    let recreated_struct: Test = from_bytes_unnamed(&mut expected).unwrap();
+    
+    assert_eq!(test, recreated_struct);
 }
 ```

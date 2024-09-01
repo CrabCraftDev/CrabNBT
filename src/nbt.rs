@@ -7,7 +7,7 @@ use std::ops::Deref;
 
 pub mod compound;
 pub mod tag;
-mod utils;
+pub mod utils;
 
 /// Represents the main NBT structure.
 /// It contains the root compound tag of the NBT structure and its associated name

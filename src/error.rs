@@ -1,6 +1,12 @@
+#[cfg(feature = "serde")]
+use serde::{de, ser};
+#[cfg(feature = "serde")]
+use std::fmt::Display;
 use thiserror::Error;
 
-#[derive(Error, Copy, Clone, Debug)]
+pub type Result<T> = std::result::Result<T, Error>;
+
+#[derive(Error, Clone, Debug)]
 pub enum Error {
     #[error("The root tag of the NBT file is not a compound tag. Received tag id: {0}")]
     NoRootCompound(u8),
@@ -8,4 +14,22 @@ pub enum Error {
     InvalidJavaString,
     #[error("Encountered an unknown NBT tag id {0}.")]
     UnknownTagId(u8),
+    #[error("Serde error: {0}")]
+    SerdeError(String),
+    #[error("NBT doesn't support this type {0}")]
+    UnsupportedType(String),
+}
+
+#[cfg(feature = "serde")]
+impl de::Error for Error {
+    fn custom<T: Display>(msg: T) -> Self {
+        Error::SerdeError(msg.to_string())
+    }
+}
+
+#[cfg(feature = "serde")]
+impl ser::Error for Error {
+    fn custom<T: Display>(msg: T) -> Self {
+        Error::SerdeError(msg.to_string())
+    }
 }
