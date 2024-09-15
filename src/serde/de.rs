@@ -71,11 +71,8 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
             });
         }
 
-        let res: Result<V::Value> = Ok(
+        let result: Result<V::Value> = Ok(
             match NbtTag::deserialize_data(self.input, tag_to_deserialize)? {
-                NbtTag::End => {
-                    unimplemented!("end")
-                }
                 NbtTag::Byte(value) => visitor.visit_i8(value)?,
                 NbtTag::Short(value) => visitor.visit_i16(value)?,
                 NbtTag::Int(value) => visitor.visit_i32(value)?,
@@ -87,7 +84,7 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
             },
         );
         self.tag_to_deserialize = None;
-        res
+        result
     }
 
     fn deserialize_bool<V>(self, visitor: V) -> Result<V::Value>

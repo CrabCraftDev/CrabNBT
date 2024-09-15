@@ -1,10 +1,6 @@
 use crate::error::Error::UnsupportedType;
 use crate::error::{Error, Result};
-use crate::nbt::utils::{
-    BYTE_ARRAY_ID, BYTE_ID, COMPOUND_ID, DOUBLE_ID, FLOAT_ID, INT_ARRAY_ID, INT_ID, LIST_ID,
-    LONG_ARRAY_ID, LONG_ID, SHORT_ID, STRING_ID,
-};
-use crate::serde::ser::State::MapKey;
+use crate::nbt::utils::*;
 use crate::NbtTag;
 use bytes::{BufMut, BytesMut};
 use crab_nbt::nbt::utils::END_ID;
@@ -18,7 +14,7 @@ pub struct Serializer {
 
 // NBT has a different order of things, then most other formats
 // So I use State, to keep what serializer has to do, and some information like field name
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 enum State {
     // In network NBT root name is not present
     Root(Option<String>),
@@ -42,9 +38,9 @@ impl Serializer {
                 self.output.put_u8(tag);
                 self.output.put_i32(*len);
             }
-            MapKey => {
+            State::MapKey => {
                 if tag != STRING_ID {
-                    return Err(Error::SerdeError("Map key can only be string".to_string()));
+                    return Err(Error::SerdeError(format!("Map key can only be string, not {tag}")));
                 }
             }
             State::ListElement => {}
@@ -156,6 +152,11 @@ impl<'a> ser::Serializer for &'a mut Serializer {
 
     fn serialize_str(self, v: &str) -> Result<()> {
         self.parse_state(STRING_ID)?;
+        if self.state == State::MapKey {
+            self.state = State::Named(v.to_string());
+            return Ok(());
+        }
+        
         self.output
             .put(NbtTag::String(v.to_string()).serialize_data());
         Ok(())
@@ -289,6 +290,7 @@ impl<'a> ser::Serializer for &'a mut Serializer {
     }
 
     fn serialize_map(self, _len: Option<usize>) -> Result<Self::SerializeMap> {
+        self.output.put_u8(COMPOUND_ID);
         Ok(self)
     }
 
@@ -373,7 +375,7 @@ impl<'a> ser::SerializeMap for &'a mut Serializer {
     where
         T: ?Sized + Serialize,
     {
-        self.state = MapKey;
+        self.state = State::MapKey;
         key.serialize(&mut **self)
     }
 
