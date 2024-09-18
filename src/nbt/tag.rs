@@ -3,6 +3,7 @@ use crab_nbt::error::Error;
 use crab_nbt::nbt::compound::NbtCompound;
 use crab_nbt::nbt::utils::*;
 use derive_more::From;
+use std::io::Cursor;
 
 /// Enum representing the different types of NBT tags.
 /// Each variant corresponds to a different type of data that can be stored in an NBT tag.
@@ -88,6 +89,10 @@ impl NbtTag {
         Self::deserialize_data(bytes, tag_id)
     }
 
+    pub fn deserialize_from_cursor(cursor: &mut Cursor<&[u8]>) -> Result<NbtTag, Error> {
+        Self::deserialize(cursor)
+    }
+
     pub fn deserialize_data(bytes: &mut impl Buf, tag_id: u8) -> Result<NbtTag, Error> {
         match tag_id {
             END_ID => Ok(NbtTag::End),
@@ -153,6 +158,13 @@ impl NbtTag {
             }
             _ => Err(Error::UnknownTagId(tag_id)),
         }
+    }
+
+    pub fn deserialize_data_from_cursor(
+        cursor: &mut Cursor<&[u8]>,
+        tag_id: u8,
+    ) -> Result<NbtTag, Error> {
+        Self::deserialize_data(cursor, tag_id)
     }
 
     pub fn extract_byte(&self) -> Option<i8> {

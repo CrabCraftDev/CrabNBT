@@ -1,10 +1,10 @@
+use crate::{error::Error, Nbt};
 use bytes::{Buf, BufMut, Bytes, BytesMut};
 use crab_nbt::nbt::tag::NbtTag;
 use crab_nbt::nbt::utils::{get_nbt_string, END_ID};
 use derive_more::Into;
 use std::collections::{hash_map::IntoIter, HashMap};
-
-use crate::{error::Error, Nbt};
+use std::io::Cursor;
 
 #[derive(Clone, PartialEq, Debug, Default, Into)]
 pub struct NbtCompound {
@@ -39,6 +39,12 @@ impl NbtCompound {
         Ok(NbtCompound { child_tags })
     }
 
+    pub fn deserialize_content_from_cursor(
+        cursor: &mut Cursor<&[u8]>,
+    ) -> Result<NbtCompound, Error> {
+        Self::deserialize_content(cursor)
+    }
+
     pub fn serialize_content(&self) -> Bytes {
         let mut bytes = BytesMut::new();
         for (name, tag) in &self.child_tags {
@@ -48,6 +54,10 @@ impl NbtCompound {
         }
         bytes.put_u8(END_ID);
         bytes.freeze()
+    }
+
+    pub fn serialize_content_to_vec(&self, vec: &mut Vec<u8>) {
+        vec.put(self.serialize_content());
     }
 
     pub fn put(&mut self, name: String, value: impl Into<NbtTag>) {

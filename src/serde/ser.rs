@@ -40,7 +40,9 @@ impl Serializer {
             }
             State::MapKey => {
                 if tag != STRING_ID {
-                    return Err(Error::SerdeError(format!("Map key can only be string, not {tag}")));
+                    return Err(Error::SerdeError(format!(
+                        "Map key can only be string, not {tag}"
+                    )));
                 }
             }
             State::ListElement => {}
@@ -156,7 +158,7 @@ impl<'a> ser::Serializer for &'a mut Serializer {
             self.state = State::Named(v.to_string());
             return Ok(());
         }
-        
+
         self.output
             .put(NbtTag::String(v.to_string()).serialize_data());
         Ok(())

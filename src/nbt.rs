@@ -3,6 +3,7 @@ use bytes::{Buf, BufMut, Bytes, BytesMut};
 use crab_nbt::nbt::compound::NbtCompound;
 use crab_nbt::nbt::tag::NbtTag;
 use crab_nbt::nbt::utils::*;
+use std::io::Cursor;
 use std::ops::Deref;
 
 pub mod compound;
@@ -38,6 +39,10 @@ impl Nbt {
         })
     }
 
+    pub fn read_from_cursor(cursor: &mut Cursor<&[u8]>) -> Result<Nbt, Error> {
+        Self::read(cursor)
+    }
+
     /// Reads NBT tag, that doesn't contain the name of root compound.
     /// Used in [Network NBT](https://wiki.vg/NBT#Network_NBT_(Java_Edition)).
     pub fn read_unnamed(bytes: &mut impl Buf) -> Result<Nbt, Error> {
@@ -53,12 +58,20 @@ impl Nbt {
         })
     }
 
+    pub fn read_unnamed_from_cursor(cursor: &mut Cursor<&[u8]>) -> Result<Nbt, Error> {
+        Self::read_unnamed(cursor)
+    }
+
     pub fn write(&self) -> Bytes {
         let mut bytes = BytesMut::new();
         bytes.put_u8(COMPOUND_ID);
         bytes.put(NbtTag::String(self.name.to_string()).serialize_data());
         bytes.put(self.root_tag.serialize_content());
         bytes.freeze()
+    }
+
+    pub fn write_to_vec(&self, vec: &mut Vec<u8>) {
+        vec.put(self.write());
     }
 
     /// Writes NBT tag, without name of root compound.
@@ -68,6 +81,10 @@ impl Nbt {
         bytes.put_u8(COMPOUND_ID);
         bytes.put(self.root_tag.serialize_content());
         bytes.freeze()
+    }
+
+    pub fn write_unnamed_to_vec(&self, vec: &mut Vec<u8>) {
+        vec.put(self.write_unnamed());
     }
 }
 
