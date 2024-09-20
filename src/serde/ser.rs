@@ -65,6 +65,13 @@ where
     Ok(serializer.output)
 }
 
+pub fn to_vec_unnamed<T>(value: &T) -> Result<Vec<u8>>
+where
+    T: Serialize,
+{
+    to_bytes_unnamed(value).map(Vec::from)
+}
+
 /// Serializes struct using Serde Serializer to normal NBT
 pub fn to_bytes<T>(value: &T, name: String) -> Result<BytesMut>
 where
@@ -76,6 +83,13 @@ where
     };
     value.serialize(&mut serializer)?;
     Ok(serializer.output)
+}
+
+pub fn to_vec<T>(value: &T, name: String) -> Result<Vec<u8>>
+where
+    T: Serialize,
+{
+    to_bytes(value, name).map(Vec::from)
 }
 
 impl<'a> ser::Serializer for &'a mut Serializer {
