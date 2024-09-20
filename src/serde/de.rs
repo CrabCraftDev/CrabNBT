@@ -7,16 +7,17 @@ use bytes::{Buf, BytesMut};
 use crab_nbt::nbt::utils::{get_nbt_string, END_ID};
 use serde::de::{self, DeserializeSeed, MapAccess, SeqAccess, Visitor};
 use serde::{forward_to_deserialize_any, Deserialize};
+use std::io::Cursor;
 
 #[derive(Debug)]
-pub struct Deserializer<'de> {
-    input: &'de mut BytesMut,
+pub struct Deserializer<'de, T: Buf> {
+    input: &'de mut T,
     tag_to_deserialize: Option<u8>,
     is_named: bool,
 }
 
-impl<'de> Deserializer<'de> {
-    pub fn new(input: &'de mut BytesMut, is_named: bool) -> Self {
+impl<'de, T: Buf> Deserializer<'de, T> {
+    pub fn new(input: &'de mut T, is_named: bool) -> Self {
         Deserializer {
             input,
             tag_to_deserialize: None,
@@ -34,6 +35,14 @@ where
     T::deserialize(&mut deserializer)
 }
 
+pub fn from_cursor<'a, T>(cursor: &'a mut Cursor<&[u8]>) -> Result<T>
+where
+    T: Deserialize<'a>,
+{
+    let mut deserializer = Deserializer::new(cursor, true);
+    T::deserialize(&mut deserializer)
+}
+
 /// Deserializes struct using Serde Deserializer from normal NBT
 pub fn from_bytes_unnamed<'a, T>(s: &'a mut BytesMut) -> Result<T>
 where
@@ -43,7 +52,15 @@ where
     T::deserialize(&mut deserializer)
 }
 
-impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
+pub fn from_cursor_unnamed<'a, T>(cursor: &'a mut Cursor<&[u8]>) -> Result<T>
+where
+    T: Deserialize<'a>,
+{
+    let mut deserializer = Deserializer::new(cursor, false);
+    T::deserialize(&mut deserializer)
+}
+
+impl<'de, 'a, T: Buf> de::Deserializer<'de> for &'a mut Deserializer<'de, T> {
     type Error = Error;
 
     forward_to_deserialize_any!(i8 i16 i32 i64 u8 u16 u32 u64 f32 f64 seq char str string bytes byte_buf tuple tuple_struct enum ignored_any unit unit_struct option newtype_struct);
@@ -145,11 +162,11 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
     }
 }
 
-struct CompoundAccess<'a, 'de: 'a> {
-    de: &'a mut Deserializer<'de>,
+struct CompoundAccess<'a, 'de: 'a, T: Buf> {
+    de: &'a mut Deserializer<'de, T>,
 }
 
-impl<'de, 'a> MapAccess<'de> for CompoundAccess<'a, 'de> {
+impl<'de, 'a, T: Buf> MapAccess<'de> for CompoundAccess<'a, 'de, T> {
     type Error = Error;
 
     fn next_key_seed<K>(&mut self, seed: K) -> Result<Option<K::Value>>
@@ -174,18 +191,18 @@ impl<'de, 'a> MapAccess<'de> for CompoundAccess<'a, 'de> {
     }
 }
 
-struct ListAccess<'a, 'de: 'a> {
-    de: &'a mut Deserializer<'de>,
+struct ListAccess<'a, 'de: 'a, T: Buf> {
+    de: &'a mut Deserializer<'de, T>,
     remaining_values: u32,
     list_type: u8,
 }
 
-impl<'a, 'de> SeqAccess<'de> for ListAccess<'a, 'de> {
+impl<'a, 'de, T: Buf> SeqAccess<'de> for ListAccess<'a, 'de, T> {
     type Error = Error;
 
-    fn next_element_seed<T>(&mut self, seed: T) -> Result<Option<T::Value>>
+    fn next_element_seed<E>(&mut self, seed: E) -> Result<Option<E::Value>>
     where
-        T: DeserializeSeed<'de>,
+        E: DeserializeSeed<'de>,
     {
         if self.remaining_values == 0 {
             return Ok(None);
