@@ -7,7 +7,7 @@ categories = ["parser-implementations"]
 authors = ["Norbiros", "SzczurekYT", "other CrabNBT Contributors"]
 readme = "README.md"
 license = "GPL-3.0-only"
-version = "0.2.2"
+version = "0.2.3"
 edition = "2021"
 exclude = ["tests", ".github"]
 
