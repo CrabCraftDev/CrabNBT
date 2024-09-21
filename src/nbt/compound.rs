@@ -4,7 +4,7 @@ use crab_nbt::nbt::tag::NbtTag;
 use crab_nbt::nbt::utils::{get_nbt_string, END_ID};
 use derive_more::Into;
 use std::collections::{hash_map::IntoIter, HashMap};
-use std::io::Cursor;
+use std::io::{Cursor, Write};
 
 #[derive(Clone, PartialEq, Debug, Default, Into)]
 pub struct NbtCompound {
@@ -56,8 +56,9 @@ impl NbtCompound {
         bytes.freeze()
     }
 
-    pub fn serialize_content_to_vec(&self, vec: &mut Vec<u8>) {
-        vec.put(self.serialize_content());
+    pub fn serialize_content_to_writer<W: Write>(&self, mut writer: W) -> Result<(), Error> {
+        writer.write_all(&self.serialize_content())?;
+        Ok(())
     }
 
     pub fn put(&mut self, name: String, value: impl Into<NbtTag>) {

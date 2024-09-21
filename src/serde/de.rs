@@ -90,13 +90,13 @@ impl<'de, 'a, T: Buf> de::Deserializer<'de> for &'a mut Deserializer<'de, T> {
 
         let result: Result<V::Value> = Ok(
             match NbtTag::deserialize_data(self.input, tag_to_deserialize)? {
-                NbtTag::Byte(value) => visitor.visit_i8(value)?,
-                NbtTag::Short(value) => visitor.visit_i16(value)?,
-                NbtTag::Int(value) => visitor.visit_i32(value)?,
-                NbtTag::Long(value) => visitor.visit_i64(value)?,
-                NbtTag::Float(value) => visitor.visit_f32(value)?,
-                NbtTag::Double(value) => visitor.visit_f64(value)?,
-                NbtTag::String(value) => visitor.visit_string(value)?,
+                NbtTag::Byte(value) => visitor.visit_i8::<Error>(value)?,
+                NbtTag::Short(value) => visitor.visit_i16::<Error>(value)?,
+                NbtTag::Int(value) => visitor.visit_i32::<Error>(value)?,
+                NbtTag::Long(value) => visitor.visit_i64::<Error>(value)?,
+                NbtTag::Float(value) => visitor.visit_f32::<Error>(value)?,
+                NbtTag::Double(value) => visitor.visit_f64::<Error>(value)?,
+                NbtTag::String(value) => visitor.visit_string::<Error>(value)?,
                 _ => unreachable!(),
             },
         );

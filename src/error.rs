@@ -2,11 +2,12 @@
 use serde::{de, ser};
 #[cfg(feature = "serde")]
 use std::fmt::Display;
+use std::io;
 use thiserror::Error;
 
 pub type Result<T> = std::result::Result<T, Error>;
 
-#[derive(Error, Clone, Debug)]
+#[derive(Error, Debug)]
 pub enum Error {
     #[error("The root tag of the NBT file is not a compound tag. Received tag id: {0}")]
     NoRootCompound(u8),
@@ -18,6 +19,8 @@ pub enum Error {
     SerdeError(String),
     #[error("NBT doesn't support this type {0}")]
     UnsupportedType(String),
+    #[error(transparent)]
+    Io(#[from] io::Error),
 }
 
 #[cfg(feature = "serde")]

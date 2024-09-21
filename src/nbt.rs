@@ -3,7 +3,7 @@ use bytes::{Buf, BufMut, Bytes, BytesMut};
 use crab_nbt::nbt::compound::NbtCompound;
 use crab_nbt::nbt::tag::NbtTag;
 use crab_nbt::nbt::utils::*;
-use std::io::Cursor;
+use std::io::{Cursor, Write};
 use std::ops::Deref;
 
 pub mod compound;
@@ -70,8 +70,9 @@ impl Nbt {
         bytes.freeze()
     }
 
-    pub fn write_to_vec(&self, vec: &mut Vec<u8>) {
-        vec.put(self.write());
+    pub fn write_to_writer<W: Write>(&self, mut writer: W) -> Result<(), Error> {
+        writer.write_all(&self.write())?;
+        Ok(())
     }
 
     /// Writes NBT tag, without name of root compound.
@@ -83,8 +84,9 @@ impl Nbt {
         bytes.freeze()
     }
 
-    pub fn write_unnamed_to_vec(&self, vec: &mut Vec<u8>) {
-        vec.put(self.write_unnamed());
+    pub fn write_unnamed_to_writer<W: Write>(&self, mut writer: W) -> Result<(), Error> {
+        writer.write_all(&self.write_unnamed())?;
+        Ok(())
     }
 }
 
