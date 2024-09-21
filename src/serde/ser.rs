@@ -6,6 +6,7 @@ use bytes::{BufMut, BytesMut};
 use crab_nbt::nbt::utils::END_ID;
 use serde::ser::Impossible;
 use serde::{ser, Serialize};
+use std::io::Write;
 
 pub struct Serializer {
     output: BytesMut,
@@ -65,11 +66,13 @@ where
     Ok(serializer.output)
 }
 
-pub fn to_vec_unnamed<T>(value: &T) -> Result<Vec<u8>>
+pub fn to_writer_unnamed<T, W>(value: &T, mut writer: W) -> Result<()>
 where
     T: Serialize,
+    W: Write
 {
-    to_bytes_unnamed(value).map(Vec::from)
+    writer.write_all(&to_bytes_unnamed(value)?)?;
+    Ok(())
 }
 
 /// Serializes struct using Serde Serializer to normal NBT
@@ -85,11 +88,13 @@ where
     Ok(serializer.output)
 }
 
-pub fn to_vec<T>(value: &T, name: String) -> Result<Vec<u8>>
+pub fn to_writer<T, W>(value: &T, name: String, mut writer: W) -> Result<()>
 where
     T: Serialize,
+    W: Write
 {
-    to_bytes(value, name).map(Vec::from)
+    writer.write_all(&to_bytes(value, name)?)?;
+    Ok(())
 }
 
 impl<'a> ser::Serializer for &'a mut Serializer {
