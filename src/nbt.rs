@@ -12,7 +12,7 @@ pub mod utils;
 
 /// Represents the main NBT structure.
 /// It contains the root compound tag of the NBT structure and its associated name
-#[derive(Clone, PartialEq, Debug, Default)]
+#[derive(Clone, Debug, Default, PartialEq, PartialOrd)]
 pub struct Nbt {
     pub name: String,
     pub root_tag: NbtCompound,

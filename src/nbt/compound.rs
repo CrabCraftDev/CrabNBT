@@ -3,23 +3,23 @@ use bytes::{Buf, BufMut, Bytes, BytesMut};
 use crab_nbt::nbt::tag::NbtTag;
 use crab_nbt::nbt::utils::{get_nbt_string, END_ID};
 use derive_more::Into;
-use std::collections::{hash_map::IntoIter, HashMap};
+use std::collections::{btree_map::IntoIter, BTreeMap};
 use std::io::{Cursor, Write};
 
-#[derive(Clone, PartialEq, Debug, Default, Into)]
+#[derive(Clone, Debug, Default, PartialEq, PartialOrd, Into)]
 pub struct NbtCompound {
-    pub child_tags: HashMap<String, NbtTag>,
+    pub child_tags: BTreeMap<String, NbtTag>,
 }
 
 impl NbtCompound {
     pub fn new() -> NbtCompound {
         NbtCompound {
-            child_tags: HashMap::new(),
+            child_tags: BTreeMap::new(),
         }
     }
 
     pub fn deserialize_content(bytes: &mut impl Buf) -> Result<NbtCompound, Error> {
-        let mut child_tags = HashMap::new();
+        let mut child_tags = BTreeMap::new();
 
         while bytes.has_remaining() {
             let tag_id = bytes.get_u8();
@@ -137,7 +137,7 @@ impl From<Nbt> for NbtCompound {
 impl FromIterator<(String, NbtTag)> for NbtCompound {
     fn from_iter<T: IntoIterator<Item = (String, NbtTag)>>(iter: T) -> Self {
         Self {
-            child_tags: HashMap::from_iter(iter),
+            child_tags: BTreeMap::from_iter(iter),
         }
     }
 }
