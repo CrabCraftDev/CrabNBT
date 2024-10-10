@@ -64,9 +64,14 @@ macro_rules! nbt_inner {
     ({ $($key:tt : $value:tt),* $(,)? }) => {
         $crate::NbtCompound::from_iter({
             #[allow(unused_mut)]
-            let mut map = ::std::collections::HashMap::<::std::string::String, $crate::NbtTag>::new();
-            $(map.insert($key.into(), nbt_inner!(@value $value));)*
-            map
+            let mut values = ::std::vec::Vec::<(::std::string::String, $crate::NbtTag)>::new();
+            $(
+                let key: ::std::string::String = $key.into();
+                if !values.iter().any(|(k, _)| k == &key) {
+                    values.push((key, nbt_inner!(@value $value)));
+                }
+            )*
+            values
         })
     };
     (@value $ident:ident) => { $crate::NbtTag::from($ident) };
