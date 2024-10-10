@@ -1,9 +1,9 @@
-use criterion::{black_box, criterion_group, criterion_main, Criterion, Throughput};
+use bytes::{Bytes, BytesMut};
 use crab_nbt::Nbt;
+use criterion::{black_box, criterion_group, criterion_main, Criterion, Throughput};
+use flate2::read::GzDecoder;
 use std::fs::File;
 use std::io::Read;
-use bytes::{Bytes, BytesMut};
-use flate2::read::GzDecoder;
 
 fn criterion_benchmark(c: &mut Criterion) {
     let mut file = File::open("tests/data/complex_player.dat").expect("Failed to open file");

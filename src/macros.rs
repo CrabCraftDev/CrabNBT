@@ -65,7 +65,12 @@ macro_rules! nbt_inner {
         $crate::NbtCompound::from_iter({
             #[allow(unused_mut)]
             let mut values = ::std::vec::Vec::<(::std::string::String, $crate::NbtTag)>::new();
-            $(values.push(($key.into(), nbt_inner!(@value $value)));)*
+            $(
+                let key: ::std::string::String = $key.into();
+                if !values.iter().any(|(k, _)| k == &key) {
+                    values.push((key, nbt_inner!(@value $value)));
+                }
+            )*
             values
         })
     };

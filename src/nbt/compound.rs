@@ -30,7 +30,9 @@ impl NbtCompound {
             let name = get_nbt_string(bytes)?;
 
             if let Ok(tag) = NbtTag::deserialize_data(bytes, tag_id) {
-                child_tags.push((name, tag));
+                if !child_tags.iter().any(|(key, _)| key == &name) {
+                    child_tags.push((name, tag));
+                }
             } else {
                 break;
             }
@@ -79,10 +81,8 @@ impl NbtCompound {
         None
     }
 
-
     pub fn get_short(&self, name: &str) -> Option<i16> {
-        self.get(name)
-            .and_then(|tag| tag.extract_short())
+        self.get(name).and_then(|tag| tag.extract_short())
     }
 
     pub fn get_int(&self, name: &str) -> Option<i32> {
@@ -94,13 +94,11 @@ impl NbtCompound {
     }
 
     pub fn get_float(&self, name: &str) -> Option<f32> {
-        self.get(name)
-            .and_then(|tag| tag.extract_float())
+        self.get(name).and_then(|tag| tag.extract_float())
     }
 
     pub fn get_double(&self, name: &str) -> Option<f64> {
-        self.get(name)
-            .and_then(|tag| tag.extract_double())
+        self.get(name).and_then(|tag| tag.extract_double())
     }
 
     pub fn get_bool(&self, name: &str) -> Option<bool> {
@@ -108,8 +106,7 @@ impl NbtCompound {
     }
 
     pub fn get_string(&self, name: &str) -> Option<&String> {
-        self.get(name)
-            .and_then(|tag| tag.extract_string())
+        self.get(name).and_then(|tag| tag.extract_string())
     }
 
     pub fn get_list(&self, name: &str) -> Option<&Vec<NbtTag>> {
@@ -117,18 +114,15 @@ impl NbtCompound {
     }
 
     pub fn get_compound(&self, name: &str) -> Option<&NbtCompound> {
-        self.get(name)
-            .and_then(|tag| tag.extract_compound())
+        self.get(name).and_then(|tag| tag.extract_compound())
     }
 
     pub fn get_int_array(&self, name: &str) -> Option<&Vec<i32>> {
-        self.get(name)
-            .and_then(|tag| tag.extract_int_array())
+        self.get(name).and_then(|tag| tag.extract_int_array())
     }
 
     pub fn get_long_array(&self, name: &str) -> Option<&Vec<i64>> {
-        self.get(name)
-            .and_then(|tag| tag.extract_long_array())
+        self.get(name).and_then(|tag| tag.extract_long_array())
     }
 }
 
