@@ -69,7 +69,7 @@ where
 pub fn to_writer_unnamed<T, W>(value: &T, mut writer: W) -> Result<()>
 where
     T: Serialize,
-    W: Write
+    W: Write,
 {
     writer.write_all(&to_bytes_unnamed(value)?)?;
     Ok(())
@@ -91,7 +91,7 @@ where
 pub fn to_writer<T, W>(value: &T, name: String, mut writer: W) -> Result<()>
 where
     T: Serialize,
-    W: Write
+    W: Write,
 {
     writer.write_all(&to_bytes(value, name)?)?;
     Ok(())
