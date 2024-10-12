@@ -8,7 +8,7 @@ use std::io::Cursor;
 /// Enum representing the different types of NBT tags.
 /// Each variant corresponds to a different type of data that can be stored in an NBT tag.
 #[repr(u8)]
-#[derive(Clone, PartialEq, Debug, From)]
+#[derive(Clone, Debug, PartialEq, PartialOrd, From)]
 pub enum NbtTag {
     End = END_ID,
     Byte(i8) = BYTE_ID,

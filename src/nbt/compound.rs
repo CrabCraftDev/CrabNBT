@@ -6,7 +6,7 @@ use derive_more::Into;
 use std::io::{Cursor, Write};
 use std::vec::IntoIter;
 
-#[derive(Clone, PartialEq, Debug, Default, Into)]
+#[derive(Clone, Debug, Default, PartialEq, PartialOrd, Into)]
 pub struct NbtCompound {
     pub child_tags: Vec<(String, NbtTag)>,
 }
