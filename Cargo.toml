@@ -23,3 +23,14 @@ cesu8 = "1.1.0"
 derive_more = { version = "1.0.0", features = ["into", "from"] }
 thiserror = "1.0.63"
 serde = { version = "1.0.209", optional = true, features = ["derive"] }
+
+[dev-dependencies]
+criterion = { version = "0.5.1", features = ["html_reports"] }
+flate2 = "1.0.34"
+
+[profile.bench]
+debug = true
+
+[[bench]]
+name = "read"
+harness = false
