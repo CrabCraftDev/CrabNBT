@@ -3,7 +3,7 @@ use crate::nbt::utils::{
     BYTE_ARRAY_ID, BYTE_ID, COMPOUND_ID, INT_ARRAY_ID, INT_ID, LIST_ID, LONG_ARRAY_ID, LONG_ID,
 };
 use crate::NbtTag;
-use bytes::{Buf, BytesMut};
+use bytes::Buf;
 use crab_nbt::nbt::utils::{get_nbt_string, END_ID};
 use serde::de::{self, DeserializeSeed, MapAccess, SeqAccess, Visitor};
 use serde::{forward_to_deserialize_any, Deserialize};
@@ -27,7 +27,7 @@ impl<'de, T: Buf> Deserializer<'de, T> {
 }
 
 /// Deserializes struct using Serde Deserializer from unnamed (network) NBT
-pub fn from_bytes<'a, T>(s: &'a mut BytesMut) -> Result<T>
+pub fn from_bytes<'a, T>(s: &'a mut impl Buf) -> Result<T>
 where
     T: Deserialize<'a>,
 {
@@ -44,7 +44,7 @@ where
 }
 
 /// Deserializes struct using Serde Deserializer from normal NBT
-pub fn from_bytes_unnamed<'a, T>(s: &'a mut BytesMut) -> Result<T>
+pub fn from_bytes_unnamed<'a, T>(s: &'a mut impl Buf) -> Result<T>
 where
     T: Deserialize<'a>,
 {
