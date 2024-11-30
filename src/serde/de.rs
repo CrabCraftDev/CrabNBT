@@ -60,7 +60,7 @@ where
     T::deserialize(&mut deserializer)
 }
 
-impl<'de, 'a, T: Buf> de::Deserializer<'de> for &'a mut Deserializer<'de, T> {
+impl<'de, T: Buf> de::Deserializer<'de> for &mut Deserializer<'de, T> {
     type Error = Error;
 
     forward_to_deserialize_any!(i8 i16 i32 i64 u8 u16 u32 u64 f32 f64 seq char str string bytes byte_buf tuple tuple_struct enum ignored_any unit unit_struct option newtype_struct);
