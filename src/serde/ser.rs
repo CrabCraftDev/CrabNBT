@@ -279,6 +279,13 @@ impl ser::Serializer for &mut Serializer {
             }
             _ => {
                 self.parse_state(LIST_ID)?;
+
+                // If list is empty, FirstListElement is never parsed
+                if len.unwrap() == 0 {
+                    self.output.put_u8(END_ID);
+                    self.output.put_i32(0);
+                }
+
                 self.state = State::FirstListElement {
                     len: len.unwrap() as i32,
                 };
