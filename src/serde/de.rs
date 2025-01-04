@@ -166,7 +166,7 @@ struct CompoundAccess<'a, 'de: 'a, T: Buf> {
     de: &'a mut Deserializer<'de, T>,
 }
 
-impl<'de, 'a, T: Buf> MapAccess<'de> for CompoundAccess<'a, 'de, T> {
+impl<'de, T: Buf> MapAccess<'de> for CompoundAccess<'_, 'de, T> {
     type Error = Error;
 
     fn next_key_seed<K>(&mut self, seed: K) -> Result<Option<K::Value>>
@@ -197,7 +197,7 @@ struct ListAccess<'a, 'de: 'a, T: Buf> {
     list_type: u8,
 }
 
-impl<'a, 'de, T: Buf> SeqAccess<'de> for ListAccess<'a, 'de, T> {
+impl<'de, T: Buf> SeqAccess<'de> for ListAccess<'_, 'de, T> {
     type Error = Error;
 
     fn next_element_seed<E>(&mut self, seed: E) -> Result<Option<E::Value>>
