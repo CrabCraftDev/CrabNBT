@@ -14,6 +14,7 @@ struct Test {
     array: Vec<i32>,
     list: Vec<i16>,
     sub: Inner,
+    sub_vec: Vec<Inner>,
 }
 
 #[derive(Serialize, Deserialize, PartialEq, Debug)]
@@ -29,6 +30,7 @@ fn test_serialize() {
         array: vec![5, 6, 7],
         list: vec![1, 2, 3],
         sub: Inner { int: 5 },
+        sub_vec: vec![Inner { int: 5 }],
     };
     let expected = nbt!("", {
         "str": "hi ❤️",
@@ -37,7 +39,12 @@ fn test_serialize() {
         "list": [1i16, 2i16, 3i16],
         "sub": {
             "int": 5
-        }
+        },
+        "sub_vec": [
+            {
+                "int": 5
+            }
+        ]
     });
 
     let mut bytes = to_bytes_unnamed(&test).unwrap();
@@ -55,7 +62,8 @@ fn test_deserialize() {
             "list": [1i16, 2i16, 3i16],
             "sub": {
                 "int": 5
-            }
+            },
+            "sub_vec": []
         })
         .write_unnamed()[..],
     );
@@ -65,6 +73,7 @@ fn test_deserialize() {
         array: vec![5, 6, 7],
         list: vec![1, 2, 3],
         sub: Inner { int: 5 },
+        sub_vec: Vec::new(),
     };
 
     let parsed: Test = from_bytes_unnamed(&mut test).unwrap();
