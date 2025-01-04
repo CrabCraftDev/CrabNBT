@@ -318,7 +318,12 @@ impl ser::Serializer for &mut Serializer {
     }
 
     fn serialize_map(self, _len: Option<usize>) -> Result<Self::SerializeMap> {
-        self.output.put_u8(COMPOUND_ID);
+        match self.state {
+            // Don't add tag id for next elements inside list
+            State::ListElement => {}
+            _ => self.output.put_u8(COMPOUND_ID),
+        };
+
         Ok(self)
     }
 
@@ -335,6 +340,9 @@ impl ser::Serializer for &mut Serializer {
             State::Named(string) => {
                 self.output
                     .put(NbtTag::String(string.clone()).serialize_data());
+            }
+            State::FirstListElement { len } => {
+                self.output.put_i32(*len);
             }
             _ => {
                 unimplemented!()
@@ -403,6 +411,10 @@ impl ser::SerializeMap for &mut Serializer {
     where
         T: ?Sized + Serialize,
     {
+        if let State::FirstListElement { len } = self.state {
+            self.output.put_i32(len);
+        }
+
         self.state = State::MapKey;
         key.serialize(&mut **self)
     }
