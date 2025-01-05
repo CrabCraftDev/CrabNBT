@@ -71,6 +71,7 @@ fn example(bytes: &mut Bytes) {
 
 ```rust
 use crab_nbt::serde::{arrays::IntArray, ser::to_bytes_unnamed, de::from_bytes_unnamed};
+use crab_nbt::serde::bool::deserialize_bool;
 use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, PartialEq, Debug)]
@@ -78,12 +79,17 @@ struct Test {
     number: i32,
     #[serde(with = "IntArray")]
     int_array: Vec<i32>,
+    /// Using [deserialize_bool] is required only if
+    /// you are using `#[serde(flatten)]` attribute 
+    #[serde(deserialize_with = "deserialize_bool")]
+    bool: bool
 }
 
 fn cycle() {
     let test = Test {
         number: 5,
-        int_array: vec![7, 8]
+        int_array: vec![7, 8],
+        bool: false
     };
     let mut bytes = to_bytes_unnamed(&test).unwrap();
     let recreated_struct: Test = from_bytes_unnamed(&mut bytes).unwrap();
@@ -91,3 +97,5 @@ fn cycle() {
     assert_eq!(test, recreated_struct);
 }
 ```
+
+
