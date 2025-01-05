@@ -7,7 +7,7 @@ categories = ["parser-implementations"]
 authors = ["Norbiros", "SzczurekYT", "other CrabNBT Contributors"]
 readme = "README.md"
 license = "GPL-3.0-only"
-version = "0.2.5"
+version = "0.2.6"
 edition = "2021"
 exclude = ["tests", ".github"]
 
@@ -21,8 +21,8 @@ serde = ["dep:serde"]
 bytes = "1.9.0"
 cesu8 = "1.1.0"
 derive_more = { version = "1.0.0", features = ["into", "from"] }
-thiserror = "2.0.3"
-serde = { version = "1.0.215", optional = true, features = ["derive"] }
+thiserror = "2.0.9"
+serde = { version = "1.0.217", optional = true, features = ["derive"] }
 
 [dev-dependencies]
 criterion = { version = "0.5.1", features = ["html_reports"] }
