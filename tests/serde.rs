@@ -1,9 +1,12 @@
 #![cfg(feature = "serde")]
+extern crate core;
+
 use bytes::BytesMut;
 use crab_nbt::serde::arrays::IntArray;
+use crab_nbt::serde::bool::deserialize_option_bool;
 use crab_nbt::serde::de::from_bytes_unnamed;
 use crab_nbt::serde::ser::to_bytes_unnamed;
-use crab_nbt::{nbt, Nbt};
+use crab_nbt::{nbt, Nbt, NbtCompound};
 use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, PartialEq, Debug)]
@@ -78,6 +81,35 @@ fn test_deserialize() {
 
     let parsed: Test = from_bytes_unnamed(&mut test).unwrap();
     assert_eq!(expected, parsed);
+}
+
+#[derive(Debug, PartialEq, Serialize, Deserialize)]
+struct Outer {
+    #[serde(flatten)]
+    pub content: InnerBool,
+}
+
+#[derive(Serialize, Deserialize, PartialEq, Debug)]
+struct InnerBool {
+    #[serde(default, deserialize_with = "deserialize_option_bool")]
+    pub bold: Option<bool>,
+}
+
+#[test]
+fn boolean_flatten() {
+    let nbt = Nbt::new(
+        "root".to_owned(),
+        NbtCompound::from_iter([("bold".to_owned(), false.into())]),
+    );
+
+    let parsed: Outer = from_bytes_unnamed(&mut nbt.write_unnamed()).unwrap();
+
+    assert_eq!(
+        parsed,
+        Outer {
+            content: InnerBool { bold: Some(false) },
+        }
+    )
 }
 
 #[derive(Serialize, Deserialize, PartialEq, Debug)]
