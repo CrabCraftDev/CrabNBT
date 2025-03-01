@@ -318,12 +318,7 @@ impl ser::Serializer for &mut Serializer {
     }
 
     fn serialize_map(self, _len: Option<usize>) -> Result<Self::SerializeMap> {
-        match self.state {
-            // Don't add tag id for next elements inside list
-            State::ListElement => {}
-            _ => self.output.put_u8(COMPOUND_ID),
-        };
-
+        self.serialize_struct("", 0)?;
         Ok(self)
     }
 
