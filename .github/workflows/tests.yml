@@ -16,5 +16,7 @@ jobs:
       - uses: actions/checkout@v4
       - name: Run Clippy
         run: cargo clippy --all-features
+      - name: Run formatter
+        run: cargo fmt --all -- --check
       - name: Run tests
         run: cargo test --all-features --verbose
