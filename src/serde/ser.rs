@@ -211,9 +211,9 @@ impl ser::Serializer for &mut Serializer {
         self,
         _name: &'static str,
         _variant_index: u32,
-        _variant: &'static str,
+        variant: &'static str,
     ) -> Result<()> {
-        Err(UnsupportedType("unit variant".to_string()))
+        self.serialize_str(variant)
     }
 
     fn serialize_newtype_struct<T>(self, _name: &'static str, _value: &T) -> Result<()>
