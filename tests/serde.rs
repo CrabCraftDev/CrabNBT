@@ -6,7 +6,7 @@ use crab_nbt::serde::arrays::IntArray;
 use crab_nbt::serde::bool::deserialize_option_bool;
 use crab_nbt::serde::de::from_bytes_unnamed;
 use crab_nbt::serde::ser::to_bytes_unnamed;
-use crab_nbt::{nbt, Nbt, NbtCompound};
+use crab_nbt::{Nbt, NbtCompound, nbt};
 use serde::{Deserialize, Serialize};
 use std::borrow::Cow;
 

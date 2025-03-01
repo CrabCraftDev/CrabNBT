@@ -1,5 +1,5 @@
 use bytes::Bytes;
-use crab_nbt::{nbt, Nbt, NbtCompound, NbtTag};
+use crab_nbt::{Nbt, NbtCompound, NbtTag, nbt};
 
 #[test]
 fn nbt_macro_handles_empty_content() {

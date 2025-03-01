@@ -1,6 +1,6 @@
 use bytes::{Bytes, BytesMut};
 use crab_nbt::Nbt;
-use criterion::{criterion_group, criterion_main, BatchSize, Criterion, Throughput};
+use criterion::{BatchSize, Criterion, Throughput, criterion_group, criterion_main};
 use flate2::read::GzDecoder;
 use std::fs::File;
 use std::io::Read;

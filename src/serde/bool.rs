@@ -1,6 +1,6 @@
 use core::fmt;
-use serde::de::{Error, Visitor};
 use serde::Deserializer;
+use serde::de::{Error, Visitor};
 
 pub fn deserialize_bool<'de, D>(deserializer: D) -> Result<bool, D::Error>
 where
