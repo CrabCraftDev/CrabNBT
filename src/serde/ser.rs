@@ -1,11 +1,11 @@
-use crate::NbtTag;
 use crate::error::Error::UnsupportedType;
 use crate::error::{Error, Result};
 use crate::nbt::utils::*;
+use crate::NbtTag;
 use bytes::{BufMut, BytesMut};
 use crab_nbt::nbt::utils::END_ID;
 use serde::ser::Impossible;
-use serde::{Serialize, ser};
+use serde::{ser, Serialize};
 use std::io::Write;
 
 pub struct Serializer {

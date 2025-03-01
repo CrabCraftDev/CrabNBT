@@ -1,12 +1,12 @@
-use crate::NbtTag;
 use crate::error::{Error, Result};
 use crate::nbt::utils::{
     BYTE_ARRAY_ID, BYTE_ID, COMPOUND_ID, INT_ARRAY_ID, INT_ID, LIST_ID, LONG_ARRAY_ID, LONG_ID,
 };
+use crate::NbtTag;
 use bytes::Buf;
-use crab_nbt::nbt::utils::{END_ID, get_nbt_string};
+use crab_nbt::nbt::utils::{get_nbt_string, END_ID};
 use serde::de::{self, DeserializeSeed, MapAccess, SeqAccess, Visitor};
-use serde::{Deserialize, forward_to_deserialize_any};
+use serde::{forward_to_deserialize_any, Deserialize};
 use std::io::Cursor;
 
 #[derive(Debug)]

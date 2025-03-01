@@ -1,7 +1,7 @@
-use crate::{Nbt, error::Error};
+use crate::{error::Error, Nbt};
 use bytes::{Buf, BufMut, Bytes, BytesMut};
 use crab_nbt::nbt::tag::NbtTag;
-use crab_nbt::nbt::utils::{END_ID, get_nbt_string};
+use crab_nbt::nbt::utils::{get_nbt_string, END_ID};
 use derive_more::Into;
 use std::io::{Cursor, Write};
 use std::vec::IntoIter;

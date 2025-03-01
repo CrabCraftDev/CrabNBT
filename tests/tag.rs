@@ -1,5 +1,5 @@
 use bytes::Bytes;
-use crab_nbt::{Nbt, NbtTag, nbt};
+use crab_nbt::{nbt, Nbt, NbtTag};
 
 #[test]
 fn serialize_data_string() {
