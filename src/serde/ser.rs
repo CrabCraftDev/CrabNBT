@@ -318,11 +318,15 @@ impl ser::Serializer for &mut Serializer {
     }
 
     fn serialize_map(self, _len: Option<usize>) -> Result<Self::SerializeMap> {
-        self.serialize_struct("", 0)?;
-        Ok(self)
+        self.serialize_struct("", 0)
     }
 
     fn serialize_struct(self, _name: &'static str, _len: usize) -> Result<Self::SerializeStruct> {
+        // Don't write tag id for next elements inside list
+        if let State::ListElement { .. } = self.state {
+            return Ok(self);
+        }
+
         self.output.put_u8(COMPOUND_ID);
 
         match &mut self.state {
@@ -406,10 +410,6 @@ impl ser::SerializeMap for &mut Serializer {
     where
         T: ?Sized + Serialize,
     {
-        if let State::FirstListElement { len } = self.state {
-            self.output.put_i32(len);
-        }
-
         self.state = State::MapKey;
         key.serialize(&mut **self)
     }
