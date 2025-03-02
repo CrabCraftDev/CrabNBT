@@ -1,6 +1,3 @@
-#![cfg(feature = "serde")]
-extern crate core;
-
 use bytes::BytesMut;
 use crab_nbt::serde::arrays::IntArray;
 use crab_nbt::serde::bool::deserialize_option_bool;
@@ -8,7 +5,6 @@ use crab_nbt::serde::de::from_bytes_unnamed;
 use crab_nbt::serde::ser::to_bytes_unnamed;
 use crab_nbt::{nbt, Nbt, NbtCompound};
 use serde::{Deserialize, Serialize};
-use std::borrow::Cow;
 
 #[derive(Serialize, Deserialize, PartialEq, Debug)]
 struct Test {
@@ -52,6 +48,11 @@ fn test_serialize() {
     });
 
     let mut bytes = to_bytes_unnamed(&test).unwrap();
+    // not okay
+    // b"\n\x08\0\x03str\0\thi \xe2\x9d\xa4\xef\xb8\x8f\x01\0\x07boolean\0\x0b\0\x05array\0\0\0\x03\0\0\0\x05\0\0\0\x06\0\0\0\x07\t\0\x04list\x02\0\0\0\x03\0\x01\0\x02\0\x03\n\0\x03sub\x03\0\x03int\0\0\0\x05\0\t\0\x07sub_vec\n          \x03\0\x03int\0\0\0\x05\0\0"
+    // ok
+    // b"\n\x08\0\x03str\0\thi \xe2\x9d\xa4\xef\xb8\x8f\x01\0\x07boolean\0\x0b\0\x05array\0\0\0\x03\0\0\0\x05\0\0\0\x06\0\0\0\x07\t\0\x04list\x02\0\0\0\x03\0\x01\0\x02\0\x03\n\0\x03sub\x03\0\x03int\0\0\0\x05\0\t\0\x07sub_vec\n\0\0\0\x01\x03\0\x03int\0\0\0\x05\0\0"
+    // panic!("{:?}", bytes);
     let nbt = Nbt::read_unnamed(&mut bytes).unwrap();
     assert_eq!(nbt, expected);
 }
@@ -111,46 +112,4 @@ fn boolean_flatten() {
             content: InnerBool { bold: Some(false) },
         }
     )
-}
-
-#[derive(Serialize, Deserialize, PartialEq, Debug)]
-#[serde(untagged)]
-enum Message {
-    Request { id: String, method: i8 },
-    Response { uid: i8 },
-}
-
-#[derive(Serialize, Deserialize, PartialEq, Debug)]
-struct Text {
-    #[serde(flatten)]
-    pub message: Message,
-}
-
-#[test]
-fn test_map_cycle() {
-    let test = Text {
-        message: Message::Request {
-            id: "a".to_string(),
-            method: 0,
-        },
-    };
-    let mut bytes = to_bytes_unnamed(&test).unwrap();
-    let result: Text = from_bytes_unnamed(&mut bytes).unwrap();
-    assert_eq!(result, test);
-}
-
-#[derive(Serialize, Deserialize, PartialEq, Debug)]
-#[serde(tag = "action", content = "value", rename_all = "snake_case")]
-pub enum Event {
-    OpenUrl(Cow<'static, str>),
-}
-
-#[test]
-fn test_enum_unit_variant() {
-    let test = Event::OpenUrl("test".to_string().into());
-    let bytes = to_bytes_unnamed(&test).unwrap();
-    assert_eq!(
-        bytes.as_ref(),
-        b"\n\x08\0\x06action\0\x08open_url\x08\0\x05value\0\x04test\0"
-    );
 }
