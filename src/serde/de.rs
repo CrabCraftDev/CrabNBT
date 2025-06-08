@@ -14,6 +14,10 @@ pub struct Deserializer<'de, T: Buf> {
     input: &'de mut T,
     tag_to_deserialize: Option<u8>,
     is_named: bool,
+    // Average serde experience, sometimes when you deserialize a struct in a struct
+    // It doesn't call `deserialize_identifier` but `deserialize_string`
+    // So we need to know if we are currently deserializing a key or not
+    is_deserializing_key: bool,
 }
 
 impl<'de, T: Buf> Deserializer<'de, T> {
@@ -22,6 +26,7 @@ impl<'de, T: Buf> Deserializer<'de, T> {
             input,
             tag_to_deserialize: None,
             is_named,
+            is_deserializing_key: true,
         }
     }
 }
@@ -69,7 +74,16 @@ impl<'de, T: Buf> de::Deserializer<'de> for &mut Deserializer<'de, T> {
     where
         V: Visitor<'de>,
     {
+        // Sometimes `deserialize_string` is called instead of `deserialize_identifier`
+        if self.is_deserializing_key {
+            return self.deserialize_identifier(visitor);
+        }
+
         let tag_to_deserialize = self.tag_to_deserialize.unwrap();
+
+        if tag_to_deserialize == COMPOUND_ID {
+            return self.deserialize_map(visitor);
+        }
 
         let list_type = match tag_to_deserialize {
             LIST_ID => Some(self.input.get_u8()),
@@ -78,7 +92,6 @@ impl<'de, T: Buf> de::Deserializer<'de> for &mut Deserializer<'de, T> {
             BYTE_ARRAY_ID => Some(BYTE_ID),
             _ => None,
         };
-
         if let Some(list_type) = list_type {
             let remaining_values = self.input.get_u32();
             return visitor.visit_seq(ListAccess {
@@ -97,7 +110,7 @@ impl<'de, T: Buf> de::Deserializer<'de> for &mut Deserializer<'de, T> {
                 NbtTag::Float(value) => visitor.visit_f32::<Error>(value)?,
                 NbtTag::Double(value) => visitor.visit_f64::<Error>(value)?,
                 NbtTag::String(value) => visitor.visit_string::<Error>(value)?,
-                _ => unreachable!(),
+                tag => unreachable!("{:?} is not a valid NBT tag", tag),
             },
         );
         self.tag_to_deserialize = None;
@@ -128,8 +141,9 @@ impl<'de, T: Buf> de::Deserializer<'de> for &mut Deserializer<'de, T> {
             }
 
             if self.is_named {
-                // Consume struct name
-                NbtTag::deserialize(self.input)?;
+                // Compound name is never used, so we can skip it
+                let length = self.input.get_u16() as usize;
+                self.input.advance(length);
             }
         }
 
@@ -180,6 +194,7 @@ impl<'de, T: Buf> MapAccess<'de> for CompoundAccess<'_, 'de, T> {
             return Ok(None);
         }
 
+        self.de.is_deserializing_key = true;
         seed.deserialize(&mut *self.de).map(Some)
     }
 
@@ -187,6 +202,7 @@ impl<'de, T: Buf> MapAccess<'de> for CompoundAccess<'_, 'de, T> {
     where
         V: DeserializeSeed<'de>,
     {
+        self.de.is_deserializing_key = false;
         seed.deserialize(&mut *self.de)
     }
 }
