@@ -13,14 +13,14 @@ pub struct Serializer {
     state: State,
 }
 
-// NBT has a different order of things, then most other formats
-// So I use State, to keep what serializer has to do, and some information like field name
+// NBT uses a different order of tag type, tag name and value than most formats.
+// The `State` struct helps track what the serializer should do
 #[derive(Clone, Debug, PartialEq)]
 enum State {
     // In network NBT root name is not present
     Root(Option<String>),
     Named(String),
-    // Used by maps, to check if key is String
+    // Used by maps to check if the key is String
     MapKey,
     FirstListElement { len: i32 },
     ListElement,
@@ -109,7 +109,7 @@ impl ser::Serializer for &mut Serializer {
     type SerializeStruct = Self;
     type SerializeStructVariant = Impossible<(), Error>;
 
-    // NBT doesn't have bool type, but it's most commonly represented as a byte
+    // NBT doesn't have a bool type, but it's most commonly represented as a byte
     fn serialize_bool(self, v: bool) -> Result<()> {
         self.serialize_i8(v as i8)?;
         Ok(())
@@ -187,7 +187,7 @@ impl ser::Serializer for &mut Serializer {
         Err(UnsupportedType("bytes".to_string()))
     }
 
-    // Just skip serializing, if value is none
+    // Just skip serializing if the value is none
     fn serialize_none(self) -> Result<()> {
         Ok(())
     }
@@ -280,7 +280,7 @@ impl ser::Serializer for &mut Serializer {
             _ => {
                 self.parse_state(LIST_ID)?;
 
-                // If list is empty, FirstListElement is never parsed
+                // If the list is empty, FirstListElement is never parsed
                 if len.unwrap() == 0 {
                     self.output.put_u8(END_ID);
                     self.output.put_i32(0);
@@ -323,7 +323,7 @@ impl ser::Serializer for &mut Serializer {
 
     fn serialize_struct(self, _name: &'static str, _len: usize) -> Result<Self::SerializeStruct> {
         // Don't write tag id for next elements inside list
-        if let State::ListElement { .. } = self.state {
+        if let State::ListElement = self.state {
             return Ok(self);
         }
 

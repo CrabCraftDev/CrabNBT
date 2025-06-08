@@ -24,15 +24,8 @@ pub struct TextStyle {
 #[serde(untagged)]
 #[repr(u8)]
 pub enum TextContent {
-    /// Normal text, but legacy formatting still applies
     Literal { text: Cow<'static, str> },
 }
-
-// #[derive(Debug, Clone, PartialEq, Eq, Hash, Default, Serialize, Deserialize)]
-// pub struct TextStyle {
-//     #[serde(skip_serializing_if = "Option::is_none", rename = "hoverEvent")]
-//     pub hover_event: Option<HoverEvent>,
-// }
 
 #[test]
 pub fn test_complex_text() {

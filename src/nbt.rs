@@ -43,7 +43,7 @@ impl Nbt {
         Self::read(cursor)
     }
 
-    /// Reads NBT tag, that doesn't contain the name of root compound.
+    /// Reads an NBT tag that doesn't contain the name of the root compound.
     /// Used in [Network NBT](https://wiki.vg/NBT#Network_NBT_(Java_Edition)).
     pub fn read_unnamed(bytes: &mut impl Buf) -> Result<Nbt, Error> {
         let tag_type_id = bytes.get_u8();
