@@ -48,11 +48,6 @@ fn test_serialize() {
     });
 
     let mut bytes = to_bytes_unnamed(&test).unwrap();
-    // not okay
-    // b"\n\x08\0\x03str\0\thi \xe2\x9d\xa4\xef\xb8\x8f\x01\0\x07boolean\0\x0b\0\x05array\0\0\0\x03\0\0\0\x05\0\0\0\x06\0\0\0\x07\t\0\x04list\x02\0\0\0\x03\0\x01\0\x02\0\x03\n\0\x03sub\x03\0\x03int\0\0\0\x05\0\t\0\x07sub_vec\n          \x03\0\x03int\0\0\0\x05\0\0"
-    // ok
-    // b"\n\x08\0\x03str\0\thi \xe2\x9d\xa4\xef\xb8\x8f\x01\0\x07boolean\0\x0b\0\x05array\0\0\0\x03\0\0\0\x05\0\0\0\x06\0\0\0\x07\t\0\x04list\x02\0\0\0\x03\0\x01\0\x02\0\x03\n\0\x03sub\x03\0\x03int\0\0\0\x05\0\t\0\x07sub_vec\n\0\0\0\x01\x03\0\x03int\0\0\0\x05\0\0"
-    // panic!("{:?}", bytes);
     let nbt = Nbt::read_unnamed(&mut bytes).unwrap();
     assert_eq!(nbt, expected);
 }
