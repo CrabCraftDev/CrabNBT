@@ -68,7 +68,7 @@ where
 impl<'de, T: Buf> de::Deserializer<'de> for &mut Deserializer<'de, T> {
     type Error = Error;
 
-    forward_to_deserialize_any!(i8 i16 i32 i64 u8 u16 u32 u64 f32 f64 seq char str string bytes byte_buf tuple tuple_struct enum ignored_any unit unit_struct option newtype_struct);
+    forward_to_deserialize_any!(i8 i16 i32 i64 u8 u16 u32 u64 f32 f64 seq char str string bytes byte_buf tuple tuple_struct enum ignored_any unit unit_struct newtype_struct);
 
     fn deserialize_any<V>(self, visitor: V) -> Result<V::Value>
     where
@@ -128,6 +128,13 @@ impl<'de, T: Buf> de::Deserializer<'de> for &mut Deserializer<'de, T> {
             }
         }
         visitor.visit_bool(false)
+    }
+
+    fn deserialize_option<V>(self, visitor: V) -> Result<V::Value>
+    where
+        V: Visitor<'de>,
+    {
+        visitor.visit_some(self)
     }
 
     fn deserialize_map<V>(self, visitor: V) -> Result<V::Value>
