@@ -2,14 +2,13 @@ use crate::error::Error::UnsupportedType;
 use crate::error::{Error, Result};
 use crate::nbt::utils::*;
 use crate::NbtTag;
-use bytes::{BufMut, BytesMut};
 use crab_nbt::nbt::utils::END_ID;
 use serde::ser::Impossible;
 use serde::{ser, Serialize};
 use std::io::Write;
 
 pub struct Serializer {
-    output: BytesMut,
+    output: Vec<u8>,
     state: State,
 }
 
@@ -31,13 +30,13 @@ impl Serializer {
     fn parse_state(&mut self, tag: u8) -> Result<()> {
         match &mut self.state {
             State::Named(name) | State::Array { name, .. } => {
-                self.output.put_u8(tag);
+                self.output.push(tag);
                 self.output
-                    .put(NbtTag::String(name.clone()).serialize_data());
+                    .extend(NbtTag::String(name.clone()).serialize_data());
             }
             State::FirstListElement { len } => {
-                self.output.put_u8(tag);
-                self.output.put_i32(*len);
+                self.output.push(tag);
+                self.output.extend(len.to_be_bytes().iter());
             }
             State::MapKey => {
                 if tag != STRING_ID {
@@ -54,12 +53,12 @@ impl Serializer {
 }
 
 /// Serializes struct using Serde Serializer to unnamed (network) NBT
-pub fn to_bytes_unnamed<T>(value: &T) -> Result<BytesMut>
+pub fn to_bytes_unnamed<T>(value: &T) -> Result<Vec<u8>>
 where
     T: Serialize,
 {
     let mut serializer = Serializer {
-        output: BytesMut::new(),
+        output: Vec::new(),
         state: State::Root(None),
     };
     value.serialize(&mut serializer)?;
@@ -76,12 +75,12 @@ where
 }
 
 /// Serializes struct using Serde Serializer to normal NBT
-pub fn to_bytes<T>(value: &T, name: String) -> Result<BytesMut>
+pub fn to_bytes<T>(value: &T, name: String) -> Result<Vec<u8>>
 where
     T: Serialize,
 {
     let mut serializer = Serializer {
-        output: BytesMut::new(),
+        output: Vec::new(),
         state: State::Root(Some(name)),
     };
     value.serialize(&mut serializer)?;
@@ -117,25 +116,25 @@ impl ser::Serializer for &mut Serializer {
 
     fn serialize_i8(self, v: i8) -> Result<()> {
         self.parse_state(BYTE_ID)?;
-        self.output.put_i8(v);
+        self.output.extend(v.to_be_bytes().iter());
         Ok(())
     }
 
     fn serialize_i16(self, v: i16) -> Result<()> {
         self.parse_state(SHORT_ID)?;
-        self.output.put_i16(v);
+        self.output.extend(v.to_be_bytes().iter());
         Ok(())
     }
 
     fn serialize_i32(self, v: i32) -> Result<()> {
         self.parse_state(INT_ID)?;
-        self.output.put_i32(v);
+        self.output.extend(v.to_be_bytes().iter());
         Ok(())
     }
 
     fn serialize_i64(self, v: i64) -> Result<()> {
         self.parse_state(LONG_ID)?;
-        self.output.put_i64(v);
+        self.output.extend(v.to_be_bytes().iter());
         Ok(())
     }
 
@@ -157,13 +156,13 @@ impl ser::Serializer for &mut Serializer {
 
     fn serialize_f32(self, v: f32) -> Result<()> {
         self.parse_state(FLOAT_ID)?;
-        self.output.put_f32(v);
+        self.output.extend(v.to_be_bytes().iter());
         Ok(())
     }
 
     fn serialize_f64(self, v: f64) -> Result<()> {
         self.parse_state(DOUBLE_ID)?;
-        self.output.put_f64(v);
+        self.output.extend(v.to_be_bytes().iter());
         Ok(())
     }
 
@@ -179,7 +178,7 @@ impl ser::Serializer for &mut Serializer {
         }
 
         self.output
-            .put(NbtTag::String(v.to_string()).serialize_data());
+            .extend(NbtTag::String(v.to_string()).serialize_data());
         Ok(())
     }
 
@@ -274,7 +273,7 @@ impl ser::Serializer for &mut Serializer {
                     }
                 };
                 self.parse_state(id)?;
-                self.output.put_i32(len.unwrap() as i32);
+                self.output.extend((len.unwrap() as i32).to_be_bytes().iter());
                 self.state = State::ListElement;
             }
             _ => {
@@ -282,8 +281,8 @@ impl ser::Serializer for &mut Serializer {
 
                 // If the list is empty, FirstListElement is never parsed
                 if len.unwrap() == 0 {
-                    self.output.put_u8(END_ID);
-                    self.output.put_i32(0);
+                    self.output.push(END_ID);
+                    self.output.extend(0_i32.to_be_bytes().iter());
                 }
 
                 self.state = State::FirstListElement {
@@ -327,21 +326,21 @@ impl ser::Serializer for &mut Serializer {
             return Ok(self);
         }
 
-        self.output.put_u8(COMPOUND_ID);
+        self.output.push(COMPOUND_ID);
 
         match &mut self.state {
             State::Root(root_name) => {
                 if let Some(root_name) = root_name {
                     self.output
-                        .put(NbtTag::String(root_name.clone()).serialize_data());
+                        .extend(NbtTag::String(root_name.clone()).serialize_data());
                 }
             }
             State::Named(string) => {
                 self.output
-                    .put(NbtTag::String(string.clone()).serialize_data());
+                    .extend(NbtTag::String(string.clone()).serialize_data());
             }
             State::FirstListElement { len } => {
-                self.output.put_i32(*len);
+                self.output.extend(len.to_be_bytes().iter());
             }
             _ => {
                 unimplemented!()
@@ -397,7 +396,7 @@ impl ser::SerializeStruct for &mut Serializer {
     }
 
     fn end(self) -> Result<()> {
-        self.output.put_u8(END_ID);
+        self.output.push(END_ID);
         Ok(())
     }
 }
@@ -422,7 +421,7 @@ impl ser::SerializeMap for &mut Serializer {
     }
 
     fn end(self) -> Result<()> {
-        self.output.put_u8(END_ID);
+        self.output.push(END_ID);
         Ok(())
     }
 }

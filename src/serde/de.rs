@@ -1,17 +1,19 @@
-use crate::error::{Error, Result};
-use crate::nbt::utils::{
-    BYTE_ARRAY_ID, BYTE_ID, COMPOUND_ID, INT_ARRAY_ID, INT_ID, LIST_ID, LONG_ARRAY_ID, LONG_ID,
+use crate::{
+    error::{Error, Result},
+    nbt::utils::{
+        BYTE_ARRAY_ID, BYTE_ID, COMPOUND_ID, INT_ARRAY_ID, INT_ID, LIST_ID, LONG_ARRAY_ID, LONG_ID,
+    },
+    slice_cursor::BinarySliceCursor,
+    NbtTag,
 };
-use crate::NbtTag;
-use bytes::Buf;
 use crab_nbt::nbt::utils::{get_nbt_string, END_ID};
 use serde::de::{self, DeserializeSeed, MapAccess, SeqAccess, Visitor};
 use serde::{forward_to_deserialize_any, Deserialize};
 use std::io::Cursor;
 
 #[derive(Debug)]
-pub struct Deserializer<'de, T: Buf> {
-    input: &'de mut T,
+pub struct Deserializer<'de> {
+    input: BinarySliceCursor<'de>,
     tag_to_deserialize: Option<u8>,
     is_named: bool,
     // Average serde experience, sometimes when you deserialize a struct in a struct
@@ -20,8 +22,8 @@ pub struct Deserializer<'de, T: Buf> {
     is_deserializing_key: bool,
 }
 
-impl<'de, T: Buf> Deserializer<'de, T> {
-    pub fn new(input: &'de mut T, is_named: bool) -> Self {
+impl<'de> Deserializer<'de> {
+    pub fn new(input: BinarySliceCursor<'de>, is_named: bool) -> Self {
         Deserializer {
             input,
             tag_to_deserialize: None,
@@ -32,11 +34,11 @@ impl<'de, T: Buf> Deserializer<'de, T> {
 }
 
 /// Deserializes struct using Serde Deserializer from unnamed (network) NBT
-pub fn from_bytes<'a, T>(s: &'a mut impl Buf) -> Result<T>
+pub fn from_bytes<'a, T>(s: &'a [u8]) -> Result<T>
 where
     T: Deserialize<'a>,
 {
-    let mut deserializer = Deserializer::new(s, true);
+    let mut deserializer = Deserializer::new(BinarySliceCursor::new(s), true);
     T::deserialize(&mut deserializer)
 }
 
@@ -44,16 +46,16 @@ pub fn from_cursor<'a, T>(cursor: &'a mut Cursor<&[u8]>) -> Result<T>
 where
     T: Deserialize<'a>,
 {
-    let mut deserializer = Deserializer::new(cursor, true);
+    let mut deserializer = Deserializer::new(BinarySliceCursor::new(cursor.get_ref()), true);
     T::deserialize(&mut deserializer)
 }
 
 /// Deserializes struct using Serde Deserializer from normal NBT
-pub fn from_bytes_unnamed<'a, T>(s: &'a mut impl Buf) -> Result<T>
+pub fn from_bytes_unnamed<'a, T>(s: &'a [u8]) -> Result<T>
 where
     T: Deserialize<'a>,
 {
-    let mut deserializer = Deserializer::new(s, false);
+    let mut deserializer = Deserializer::new(BinarySliceCursor::new(s), false);
     T::deserialize(&mut deserializer)
 }
 
@@ -61,11 +63,11 @@ pub fn from_cursor_unnamed<'a, T>(cursor: &'a mut Cursor<&[u8]>) -> Result<T>
 where
     T: Deserialize<'a>,
 {
-    let mut deserializer = Deserializer::new(cursor, false);
+    let mut deserializer = Deserializer::new(BinarySliceCursor::new(cursor.get_ref()), false);
     T::deserialize(&mut deserializer)
 }
 
-impl<'de, T: Buf> de::Deserializer<'de> for &mut Deserializer<'de, T> {
+impl<'de> de::Deserializer<'de> for &mut Deserializer<'de> {
     type Error = Error;
 
     forward_to_deserialize_any!(i8 i16 i32 i64 u8 u16 u32 u64 f32 f64 seq char str string bytes byte_buf tuple tuple_struct enum ignored_any unit unit_struct newtype_struct);
@@ -86,14 +88,14 @@ impl<'de, T: Buf> de::Deserializer<'de> for &mut Deserializer<'de, T> {
         }
 
         let list_type = match tag_to_deserialize {
-            LIST_ID => Some(self.input.get_u8()),
+            LIST_ID => Some(self.input.read_u8()?),
             INT_ARRAY_ID => Some(INT_ID),
             LONG_ARRAY_ID => Some(LONG_ID),
             BYTE_ARRAY_ID => Some(BYTE_ID),
             _ => None,
         };
         if let Some(list_type) = list_type {
-            let remaining_values = self.input.get_u32();
+            let remaining_values = self.input.read_u32_be()?;
             return visitor.visit_seq(ListAccess {
                 de: self,
                 list_type,
@@ -102,7 +104,7 @@ impl<'de, T: Buf> de::Deserializer<'de> for &mut Deserializer<'de, T> {
         }
 
         let result: Result<V::Value> = Ok(
-            match NbtTag::deserialize_data(self.input, tag_to_deserialize)? {
+            match NbtTag::deserialize_data(&mut self.input, tag_to_deserialize)? {
                 NbtTag::Byte(value) => visitor.visit_i8::<Error>(value)?,
                 NbtTag::Short(value) => visitor.visit_i16::<Error>(value)?,
                 NbtTag::Int(value) => visitor.visit_i32::<Error>(value)?,
@@ -122,7 +124,7 @@ impl<'de, T: Buf> de::Deserializer<'de> for &mut Deserializer<'de, T> {
         V: Visitor<'de>,
     {
         if self.tag_to_deserialize.unwrap() == BYTE_ID {
-            let value = self.input.get_u8();
+            let value = self.input.read_u8()?;
             if value != 0 {
                 return visitor.visit_bool(true);
             }
@@ -142,15 +144,15 @@ impl<'de, T: Buf> de::Deserializer<'de> for &mut Deserializer<'de, T> {
         V: Visitor<'de>,
     {
         if self.tag_to_deserialize.is_none() {
-            let next_byte = self.input.get_u8();
+            let next_byte = self.input.read_u8()?;
             if next_byte != COMPOUND_ID {
                 return Err(Error::NoRootCompound(next_byte));
             }
 
             if self.is_named {
                 // Compound name is never used, so we can skip it
-                let length = self.input.get_u16() as usize;
-                self.input.advance(length);
+                let length = self.input.read_u16_be()? as usize;
+                self.input.skip(length);
             }
         }
 
@@ -183,18 +185,19 @@ impl<'de, T: Buf> de::Deserializer<'de> for &mut Deserializer<'de, T> {
     }
 }
 
-struct CompoundAccess<'a, 'de: 'a, T: Buf> {
-    de: &'a mut Deserializer<'de, T>,
+#[derive(Debug)]
+struct CompoundAccess<'a, 'de: 'a> {
+    de: &'a mut Deserializer<'de>,
 }
 
-impl<'de, T: Buf> MapAccess<'de> for CompoundAccess<'_, 'de, T> {
+impl<'de> MapAccess<'de> for CompoundAccess<'_, 'de> {
     type Error = Error;
 
     fn next_key_seed<K>(&mut self, seed: K) -> Result<Option<K::Value>>
     where
         K: DeserializeSeed<'de>,
     {
-        let tag = self.de.input.get_u8();
+        let tag = self.de.input.read_u8()?;
         self.de.tag_to_deserialize = Some(tag);
 
         if tag == END_ID {
@@ -214,13 +217,13 @@ impl<'de, T: Buf> MapAccess<'de> for CompoundAccess<'_, 'de, T> {
     }
 }
 
-struct ListAccess<'a, 'de: 'a, T: Buf> {
-    de: &'a mut Deserializer<'de, T>,
+struct ListAccess<'a, 'de: 'a> {
+    de: &'a mut Deserializer<'de>,
     remaining_values: u32,
     list_type: u8,
 }
 
-impl<'de, T: Buf> SeqAccess<'de> for ListAccess<'_, 'de, T> {
+impl<'de> SeqAccess<'de> for ListAccess<'_, 'de> {
     type Error = Error;
 
     fn next_element_seed<E>(&mut self, seed: E) -> Result<Option<E::Value>>

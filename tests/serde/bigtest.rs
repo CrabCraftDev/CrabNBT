@@ -2,7 +2,6 @@ use crate::{
     decompress::decompress_data,
     serde::test_data_definitions::{BigTest, ComplexPlayer},
 };
-use bytes::BytesMut;
 use crab_nbt::serde::{
     de::{from_bytes, from_bytes_unnamed},
     ser::{to_bytes, to_bytes_unnamed},
@@ -10,7 +9,7 @@ use crab_nbt::serde::{
 
 #[test]
 fn test_roundtrip_bigtest() {
-    let bytes = BytesMut::from(include_bytes!("../data/bigtest.nbt") as &[u8]);
+    let bytes = Vec::from(include_bytes!("../data/bigtest.nbt") as &[u8]);
     let deserialized = from_bytes::<BigTest>(&mut bytes.clone()).unwrap();
     let bytes2 = to_bytes(&deserialized, "Level".to_string()).unwrap();
     let deserialized2 = from_bytes::<BigTest>(&mut bytes2.clone()).unwrap();
@@ -21,7 +20,7 @@ fn test_roundtrip_bigtest() {
 
 #[test]
 fn test_roundtrip_bigtest_unnamed() {
-    let bytes = BytesMut::from(include_bytes!("../data/bigtest.nbt") as &[u8]);
+    let bytes = Vec::from(include_bytes!("../data/bigtest.nbt") as &[u8]);
     let deserialized = from_bytes::<BigTest>(&mut bytes.clone()).unwrap();
     let bytes2 = to_bytes_unnamed(&deserialized).unwrap();
     let deserialized2 = from_bytes_unnamed::<BigTest>(&mut bytes2.clone()).unwrap();
@@ -33,7 +32,7 @@ fn test_roundtrip_bigtest_unnamed() {
 
 #[test]
 fn test_roundtrip_complex() {
-    let bytes = BytesMut::from_iter(decompress_data(
+    let bytes = Vec::from_iter(decompress_data(
         include_bytes!("../data/complex_player.dat") as &[u8],
     ));
     let deserialized = from_bytes::<ComplexPlayer>(&mut bytes.clone()).unwrap();
@@ -46,7 +45,7 @@ fn test_roundtrip_complex() {
 
 #[test]
 fn test_roundtrip_complex_unnamed() {
-    let bytes = BytesMut::from_iter(decompress_data(
+    let bytes = Vec::from_iter(decompress_data(
         include_bytes!("../data/complex_player.dat") as &[u8],
     ));
     let deserialized = from_bytes::<ComplexPlayer>(&mut bytes.clone()).unwrap();

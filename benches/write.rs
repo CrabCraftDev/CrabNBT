@@ -1,4 +1,3 @@
-use bytes::Bytes;
 use crab_nbt::Nbt;
 use criterion::{criterion_group, criterion_main, BatchSize, Criterion, Throughput};
 use std::fs::{self};
@@ -14,8 +13,7 @@ fn criterion_benchmark(c: &mut Criterion) {
     let input =
         decompress::decompress_data(&fs::read("tests/data/complex_player.dat").unwrap()[..]);
 
-    let mut bytes = Bytes::from_iter(input.iter().copied());
-    let nbt = Nbt::read(&mut bytes).expect("Failed to parse NBT");
+    let nbt = Nbt::read(&input[..]).expect("Failed to parse NBT");
 
     let mut group = c.benchmark_group("write");
 
@@ -28,10 +26,8 @@ fn criterion_benchmark(c: &mut Criterion) {
     #[cfg(feature = "serde")]
     {
         let complex_player =
-            crab_nbt::serde::de::from_bytes::<test_data_definitions::ComplexPlayer>(
-                &mut Bytes::from_iter(input.iter().copied()),
-            )
-            .expect("Failed to parse NBT");
+            crab_nbt::serde::de::from_bytes::<test_data_definitions::ComplexPlayer>(&input[..])
+                .expect("Failed to parse NBT");
 
         group.bench_function("write_complex_player_nbt_serde", |b| {
             b.iter_batched_ref(

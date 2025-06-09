@@ -1,4 +1,3 @@
-use bytes::Bytes;
 use crab_nbt::{nbt, Nbt, NbtCompound, NbtTag};
 
 #[test]
@@ -44,7 +43,7 @@ fn nbt_macro_panics_on_nonexistent_key() {
 #[test]
 fn nbt_macro_complex_object() {
     let key = "a_key".to_owned();
-    let some_bytes = Bytes::from_iter([0, 1, 2, 3]);
+    let some_bytes = Vec::from_iter([0, 1, 2, 3]);
 
     let nbt_expected = Nbt::new(
         "root".to_owned(),
