@@ -9,7 +9,7 @@ readme = "README.md"
 license = "GPL-3.0-only"
 version = "0.2.9"
 edition = "2021"
-exclude = ["tests", ".github"]
+exclude = ["tests", "benches", ".github"]
 
 [features]
 full = ["macro", "serde"]
