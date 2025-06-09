@@ -1,24 +1,31 @@
 # 🦀 CrabNBT
+
 Up-to-date Rust crate for easy and intuitive working with NBT data.
 
 ## Why not other libraries?
-CrabNBT combines best features of existing NBT crates, to create perfect, easy to use solution.<br>
-Big thanks to [simdnbt](https://github.com/azalea-rs/simdnbt) and [fastnbt](https://github.com/owengage/fastnbt) for ideas!
+
+CrabNBT combines best features of existing NBT crates, to create perfect, easy
+to use solution.<br> Big thanks to
+[simdnbt](https://github.com/azalea-rs/simdnbt) and
+[fastnbt](https://github.com/owengage/fastnbt) for ideas!
 
 ## Features
-✅ Support for serializing to/from Struct (serde)<br>
-✅ [Java string](https://docs.oracle.com/javase/8/docs/api/java/io/DataInput.html#modified-utf-8) support <br>
-✅ `nbt!` macro for easy creation <br>
-✅ Easy to use system of retrieving values from NBT <br>
-✅ Serialization support for individual tags <br>
-✅ Support for [Network NBT](https://wiki.vg/NBT#Network_NBT_(Java_Edition))
+
+✅ Support for serializing to/from Struct (serde)<br> ✅
+[Java string](https://docs.oracle.com/javase/8/docs/api/java/io/DataInput.html#modified-utf-8)
+support <br> ✅ `nbt!` macro for easy creation <br> ✅ Easy to use system of
+retrieving values from NBT <br> ✅ Serialization support for individual tags
+<br> ✅ Support for
+[Network NBT](https://wiki.vg/NBT#Network_NBT_(Java_Edition))
 
 ## Installing
+
 ```shell
 cargo add crab_nbt
 ```
 
 ## Serializing
+
 ```rust
 use crab_nbt::{nbt, Nbt, NbtCompound};
 
@@ -53,10 +60,9 @@ let normal_bytes = nbt.write();
 ## Deserializing
 
 ```rust
-use bytes::Bytes;
 use crab_nbt::{nbt, Nbt, NbtCompound};
 
-fn example(bytes: &mut Bytes) {
+fn example(bytes: &[u8]) {
     let nbt = Nbt::read(bytes).unwrap();
     let egg_name = nbt
         .get_compound("nbt_inner")
@@ -67,7 +73,8 @@ fn example(bytes: &mut Bytes) {
 ```
 
 ## Serde
-*Requires `serde` feature.*
+
+_Requires `serde` feature._
 
 ```rust ignore
 use crab_nbt::serde::{arrays::IntArray, ser::to_bytes_unnamed, de::from_bytes_unnamed};

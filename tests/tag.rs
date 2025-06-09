@@ -1,4 +1,3 @@
-use bytes::Bytes;
 use crab_nbt::{nbt, Nbt, NbtTag};
 
 #[test]
@@ -16,8 +15,8 @@ fn serialize_data() {
 
 #[test]
 fn deserialize_bigtest() {
-    let bytes = Bytes::from(include_bytes!("data/bigtest.nbt") as &[u8]);
-    let nbt = Nbt::read(&mut bytes.clone()).unwrap();
+    let bytes = Vec::from(include_bytes!("data/bigtest.nbt") as &[u8]);
+    let nbt = Nbt::read(&bytes[..]).unwrap();
     let egg_name = nbt
         .get_compound("nested compound test")
         .and_then(|compound| compound.get_compound("egg"))
@@ -38,7 +37,7 @@ fn network_nbt() {
 
     let bytes = expected_nbt.write_unnamed();
 
-    let nbt = Nbt::read_unnamed(&mut bytes.clone()).unwrap();
+    let nbt = Nbt::read_unnamed(&bytes[..]).unwrap();
 
     assert_eq!(nbt, expected_nbt);
 }
@@ -50,7 +49,7 @@ fn correct_end_tags() {
     });
 
     let expected: &[u8] = b"\n\x0c\0\rWORLD_SURFACE\0\0\0\0\0";
-    assert_eq!(heightmap.write_unnamed().as_ref(), expected)
+    assert_eq!(&heightmap.write_unnamed()[..], expected)
 }
 
 #[test]
@@ -70,7 +69,7 @@ fn nested_tag_compounds() {
 
     let bytes = original_nbt.write_unnamed();
 
-    let deserialized_nbt = Nbt::read_unnamed(&mut bytes.clone()).unwrap();
+    let deserialized_nbt = Nbt::read_unnamed(&bytes[..]).unwrap();
 
     assert_eq!(deserialized_nbt, original_nbt);
 }
