@@ -69,7 +69,7 @@ fn example(bytes: &mut Bytes) {
 ## Serde
 *Requires `serde` feature.*
 
-```ignore,rust
+```rust ignore
 use crab_nbt::serde::{arrays::IntArray, ser::to_bytes_unnamed, de::from_bytes_unnamed};
 use crab_nbt::serde::bool::deserialize_bool;
 use serde::{Deserialize, Serialize};
