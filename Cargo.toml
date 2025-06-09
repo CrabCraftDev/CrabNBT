@@ -37,3 +37,7 @@ debug = true
 [[bench]]
 name = "read"
 harness = false
+
+[[bench]]
+name = "write"
+harness = false
