@@ -1,0 +1,31 @@
+use std::{env::args, fs::File, hint::black_box, io::Read};
+
+use crab_nbt::Nbt;
+use flate2::bufread::GzDecoder;
+
+fn main() {
+    let input = load_and_decompress_file(
+        &args()
+            .nth(1)
+            .expect("expected an nbt file path as first argument"),
+    );
+
+    let nbt = Nbt::read(&input[..]).expect("Failed to parse NBT");
+
+    black_box(nbt);
+}
+
+fn load_and_decompress_file(file_path: &str) -> Vec<u8> {
+    let mut file = File::open(file_path).expect("Failed to open file");
+    let mut buffer = Vec::new();
+    file.read_to_end(&mut buffer).expect("Failed to read file");
+    let mut src = &buffer[..];
+
+    let mut src_decoder = GzDecoder::new(&mut src);
+    let mut input = Vec::new();
+    if src_decoder.read_to_end(&mut input).is_err() {
+        input = buffer;
+    }
+
+    input
+}
