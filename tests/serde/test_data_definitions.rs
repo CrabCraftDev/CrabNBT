@@ -1,3 +1,4 @@
+use crab_nbt::serde::arrays::BytesArray;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
@@ -31,7 +32,8 @@ pub struct BigTest {
     list_test_compound: Vec<CompoundEntry>,
 
     #[serde(
-        rename = "byteArrayTest (the first 1000 values of (n*n*255+n*7)%100, starting with n=0 (0, 62, 34, 16, 8, ...))"
+        rename = "byteArrayTest (the first 1000 values of (n*n*255+n*7)%100, starting with n=0 (0, 62, 34, 16, 8, ...))",
+        with = "BytesArray"
     )]
     byte_array_test: Vec<i8>,
 
@@ -64,32 +66,110 @@ struct CompoundEntry {
 #[derive(Serialize, Deserialize, PartialEq, Debug)]
 pub struct ComplexPlayer {
     #[serde(rename = "SelectedItemSlot")]
-    selected_item_slot: i32,
+    pub selected_item_slot: i32,
     #[serde(rename = "UUIDLeast")]
-    uuid_least: i64,
+    pub uuid_least: i64,
     #[serde(rename = "Attributes")]
-    attributes: Vec<Attribute>,
-    #[serde(rename = "Inventory")]
-    inventory: Vec<Item>,
-    #[serde(rename = "Health")]
-    health: i16,
+    pub attributes: Vec<Attribute>,
+    #[serde(rename = "Motion")]
+    pub motion: Vec<f64>,
+    #[serde(rename = "foodExhaustionLevel")]
+    pub food_exhaustion_level: f32,
+    #[serde(rename = "foodTickTimer")]
+    pub food_tick_timer: i32,
     #[serde(rename = "XpLevel")]
-    xp_level: i32,
+    pub xp_level: i32,
+    #[serde(rename = "Health")]
+    pub health: i16,
+    #[serde(rename = "XpSeed")]
+    pub xp_seed: i32,
+    #[serde(rename = "HealF")]
+    pub heal_f: f32,
     #[serde(rename = "SelectedItem")]
-    selected_item: Item,
+    pub selected_item: Item,
+    #[serde(rename = "SpawnForced")]
+    pub spawn_forced: i8,
+    #[serde(rename = "Inventory")]
+    pub inventory: Vec<Item>,
     #[serde(rename = "ActiveEffects")]
-    active_effects: Vec<Effect>,
+    pub active_effects: Vec<Effect>,
+    #[serde(rename = "Sleeping")]
+    pub sleeping: i8,
+    #[serde(rename = "SpawnX")]
+    pub spawn_x: i32,
+    #[serde(rename = "SpawnY")]
+    pub spawn_y: i32,
+    #[serde(rename = "Fire")]
+    pub fire: i16,
+    #[serde(rename = "SpawnZ")]
+    pub spawn_z: i32,
+    #[serde(rename = "playerGameType")]
+    pub player_game_type: i32,
+    #[serde(rename = "foodLevel")]
+    pub food_level: i32,
+    #[serde(rename = "Score")]
+    pub score: i32,
+    #[serde(rename = "Invulnerable")]
+    pub invulnerable: i8,
+    #[serde(rename = "DeathTime")]
+    pub death_time: i16,
+    #[serde(rename = "EnderItems")]
+    pub ender_items: Vec<Item>,
+    #[serde(rename = "XpP")]
+    pub xp_p: f32,
+    #[serde(rename = "AbsorptionAmount")]
+    pub absorption_amount: f32,
+    #[serde(rename = "SleepTimer")]
+    pub sleep_timer: i16,
+    #[serde(rename = "OnGround")]
+    pub on_ground: i8,
+    #[serde(rename = "HurtTime")]
+    pub hurt_time: i16,
+    #[serde(rename = "UUIDMost")]
+    pub uuid_most: i64,
+    #[serde(rename = "HurtByTimestamp")]
+    pub hurt_by_timestamp: i32,
+    #[serde(rename = "Dimension")]
+    pub dimension: i32,
+    #[serde(rename = "Air")]
+    pub air: i16,
     #[serde(rename = "Pos")]
-    pos: Vec<f64>,
+    pub pos: Vec<f64>,
+    #[serde(rename = "foodSaturationLevel")]
+    pub food_saturation_level: f32,
+    #[serde(rename = "PortalCooldown")]
+    pub portal_cooldown: i32,
+    #[serde(rename = "abilities")]
+    pub abilities: Abilities,
+    #[serde(rename = "FallDistance")]
+    pub fall_distance: f32,
+    #[serde(rename = "XpTotal")]
+    pub xp_total: i32,
+    #[serde(rename = "Rotation")]
+    pub rotation: Vec<f32>,
 }
 
 #[derive(Serialize, Deserialize, PartialEq, Debug)]
-struct Attribute {
+pub struct Abilities {
+    pub flying: i8,
+    pub instabuild: i8,
+    pub mayfly: i8,
+    pub invulnerable: i8,
+    #[serde(rename = "mayBuild")]
+    pub may_build: i8,
+    #[serde(rename = "flySpeed")]
+    pub fly_speed: f32,
+    #[serde(rename = "walkSpeed")]
+    pub walk_speed: f32,
+}
+
+#[derive(Serialize, Deserialize, PartialEq, Debug)]
+pub struct Attribute {
     #[serde(rename = "Name")]
     name: String,
     #[serde(rename = "Base")]
     base: f64,
-    #[serde(rename = "Modifiers", default)]
+    #[serde(rename = "Modifiers", default, skip_serializing_if = "Vec::is_empty")]
     modifiers: Vec<Modifier>,
 }
 
@@ -108,14 +188,14 @@ struct Modifier {
 }
 
 #[derive(Serialize, Deserialize, PartialEq, Debug)]
-struct Item {
+pub struct Item {
     id: String,
     #[serde(rename = "Damage")]
     damage: i16,
     #[serde(rename = "Count")]
-    count: u8,
+    count: i8,
     #[serde(rename = "Slot", default)]
-    slot: Option<u8>,
+    slot: Option<i8>,
     #[serde(rename = "tag")]
     tag: Option<ItemTag>,
 }
@@ -145,15 +225,15 @@ struct Display {
 }
 
 #[derive(Serialize, Deserialize, PartialEq, Debug)]
-struct Effect {
+pub struct Effect {
     #[serde(rename = "Id")]
-    id: u8,
+    id: i8,
     #[serde(rename = "Amplifier")]
-    amplifier: u8,
+    amplifier: i8,
     #[serde(rename = "Duration")]
     duration: i32,
     #[serde(rename = "Ambient")]
-    ambient: u8,
+    ambient: i8,
     #[serde(rename = "ShowParticles")]
-    show_particles: u8,
+    show_particles: i8,
 }
