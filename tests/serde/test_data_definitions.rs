@@ -1,4 +1,5 @@
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 
 // Serde struct definitions for files in `tests/data/`
 // Used in tests and benchmarks
@@ -7,9 +8,6 @@ use serde::{Deserialize, Serialize};
 pub struct BigTest {
     #[serde(rename = "nested compound test")]
     nested_compound_test: NestedCompoundTest,
-
-    #[serde(rename = "intTest")]
-    int_test: i32,
 
     #[serde(rename = "byteTest")]
     byte_test: i8,
@@ -39,6 +37,9 @@ pub struct BigTest {
 
     #[serde(rename = "shortTest")]
     short_test: i16,
+
+    #[serde(flatten)]
+    pub extra: HashMap<String, crab_nbt::NbtTag>,
 }
 
 #[derive(Serialize, Deserialize, PartialEq, Debug)]
