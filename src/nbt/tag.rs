@@ -139,22 +139,18 @@ impl NbtTag {
             }
             COMPOUND_ID => Ok(NbtTag::Compound(NbtCompound::deserialize_content(bytes)?)),
             INT_ARRAY_ID => {
+                const BYTES: usize = size_of::<i32>();
+
                 let len = bytes.get_i32() as usize;
-                let mut int_array = Vec::with_capacity(len);
-                for _ in 0..len {
-                    let int = bytes.get_i32();
-                    int_array.push(int);
-                }
-                Ok(NbtTag::IntArray(int_array))
+                let numbers = read_array::<i32, BYTES, _>(bytes, len, i32::from_be_bytes);
+                Ok(NbtTag::IntArray(numbers))
             }
             LONG_ARRAY_ID => {
+                const BYTES: usize = size_of::<i64>();
+
                 let len = bytes.get_i32() as usize;
-                let mut long_array = Vec::with_capacity(len);
-                for _ in 0..len {
-                    let long = bytes.get_i64();
-                    long_array.push(long);
-                }
-                Ok(NbtTag::LongArray(long_array))
+                let numbers = read_array::<i64, BYTES, _>(bytes, len, i64::from_be_bytes);
+                Ok(NbtTag::LongArray(numbers))
             }
             _ => Err(Error::UnknownTagId(tag_id)),
         }
