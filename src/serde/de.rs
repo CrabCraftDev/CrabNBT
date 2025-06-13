@@ -1,13 +1,13 @@
 use crate::error::{Error, Result};
-use crate::nbt::utils::{
-    BYTE_ARRAY_ID, BYTE_ID, COMPOUND_ID, INT_ARRAY_ID, INT_ID, LIST_ID, LONG_ARRAY_ID, LONG_ID,
-};
+use crate::nbt::utils::get_nbt_string;
+use crate::nbt::utils::{BYTE_ID, COMPOUND_ID, END_ID, LIST_ID};
 use crate::NbtTag;
 use bytes::Buf;
-use crab_nbt::nbt::utils::{get_nbt_string, END_ID};
-use serde::de::{self, DeserializeSeed, MapAccess, SeqAccess, Visitor};
+use serde::de::value::SeqDeserializer;
+use serde::de::{self, DeserializeSeed, IntoDeserializer, MapAccess, SeqAccess, Visitor};
 use serde::{forward_to_deserialize_any, Deserialize};
 use std::io::Cursor;
+use std::vec::IntoIter;
 
 #[derive(Debug)]
 pub struct Deserializer<'de, T: Buf> {
@@ -80,26 +80,19 @@ impl<'de, T: Buf> de::Deserializer<'de> for &mut Deserializer<'de, T> {
         }
 
         let tag_to_deserialize = self.tag_to_deserialize.unwrap();
-
-        if tag_to_deserialize == COMPOUND_ID {
-            return self.deserialize_map(visitor);
-        }
-
-        let list_type = match tag_to_deserialize {
-            LIST_ID => Some(self.input.get_u8()),
-            INT_ARRAY_ID => Some(INT_ID),
-            LONG_ARRAY_ID => Some(LONG_ID),
-            BYTE_ARRAY_ID => Some(BYTE_ID),
-            _ => None,
+        match tag_to_deserialize {
+            LIST_ID => {
+                let list_type = self.input.get_u8();
+                let remaining_values = self.input.get_u32();
+                return visitor.visit_seq(ListAccess {
+                    de: self,
+                    list_type,
+                    remaining_values,
+                });
+            }
+            COMPOUND_ID => return self.deserialize_map(visitor),
+            _ => {}
         };
-        if let Some(list_type) = list_type {
-            let remaining_values = self.input.get_u32();
-            return visitor.visit_seq(ListAccess {
-                de: self,
-                list_type,
-                remaining_values,
-            });
-        }
 
         let result: Result<V::Value> = Ok(
             match NbtTag::deserialize_data(self.input, tag_to_deserialize)? {
@@ -110,7 +103,23 @@ impl<'de, T: Buf> de::Deserializer<'de> for &mut Deserializer<'de, T> {
                 NbtTag::Float(value) => visitor.visit_f32::<Error>(value)?,
                 NbtTag::Double(value) => visitor.visit_f64::<Error>(value)?,
                 NbtTag::String(value) => visitor.visit_string::<Error>(value)?,
-                tag => unreachable!("{:?} is not a valid NBT tag", tag),
+                NbtTag::LongArray(value) => visitor
+                    .visit_seq::<SeqDeserializer<IntoIter<i64>, Error>>(
+                        value.into_deserializer(),
+                    )?,
+                NbtTag::IntArray(value) => visitor
+                    .visit_seq::<SeqDeserializer<IntoIter<i32>, Error>>(
+                        value.into_deserializer(),
+                    )?,
+                NbtTag::ByteArray(value) => {
+                    // For compatibility, we serialize byte arrays as Vec<i8>
+                    // It could be probably changed in the future
+                    let array: Vec<_> = value.iter().map(|&byte| byte as i8).collect();
+                    visitor.visit_seq::<SeqDeserializer<IntoIter<i8>, Error>>(
+                        array.into_deserializer(),
+                    )?
+                }
+                tag => unreachable!("{:?} should be handled differently", tag),
             },
         );
         self.tag_to_deserialize = None;
@@ -234,5 +243,9 @@ impl<'de, T: Buf> SeqAccess<'de> for ListAccess<'_, 'de, T> {
         self.remaining_values -= 1;
         self.de.tag_to_deserialize = Some(self.list_type);
         seed.deserialize(&mut *self.de).map(Some)
+    }
+
+    fn size_hint(&self) -> Option<usize> {
+        Some(self.remaining_values as usize)
     }
 }
