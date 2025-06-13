@@ -1,3 +1,4 @@
+use crate::test_data_definitions::{Chunk, ComplexPlayer};
 use bytes::Bytes;
 use crab_nbt::Nbt;
 use criterion::{criterion_group, criterion_main, BatchSize, Criterion, Throughput};
@@ -9,49 +10,65 @@ use std::io::Read;
 #[path = "../tests/serde/test_data_definitions.rs"]
 mod test_data_definitions;
 
-fn decompress_data(file_path: &str) -> Vec<u8> {
+fn read_file(file_path: &str) -> Bytes {
     let mut file = File::open(file_path).expect("Failed to open file");
     let mut buffer = Vec::new();
     file.read_to_end(&mut buffer).expect("Failed to read file");
-    let mut src = &buffer[..];
-
-    let mut src_decoder = GzDecoder::new(&mut src);
-    let mut input = Vec::new();
-    if src_decoder.read_to_end(&mut input).is_err() {
-        input = buffer;
-    }
-
-    input
+    Bytes::from_iter(buffer)
 }
 
-fn criterion_benchmark(c: &mut Criterion) {
-    let input = decompress_data("tests/data/complex_player.dat");
+fn read_compressed_file(file_path: &str) -> Bytes {
+    let mut src = &read_file(file_path)[..];
+    let mut decoder = GzDecoder::new(&mut src);
+    let mut buffer = Vec::new();
+    decoder.read_to_end(&mut buffer).unwrap();
+    Bytes::from_iter(buffer)
+}
 
-    let bytes = Bytes::from_iter(input);
-
+fn benchmark_file(c: &mut Criterion, file_name: &str, bytes: Bytes) {
     let mut group = c.benchmark_group("read");
     group.throughput(Throughput::Bytes(bytes.len() as u64));
 
-    group.bench_function("read_complex_player_nbt", |b| {
+    group.bench_function(file_name, |b| {
         b.iter_batched_ref(
             || bytes.clone(),
             |bytes| Nbt::read(bytes).expect("Failed to parse NBT"),
             BatchSize::SmallInput,
         )
     });
+}
 
-    #[cfg(feature = "serde")]
-    group.bench_function("read_complex_player_nbt_serde", |b| {
-        b.iter_batched_ref(
+#[cfg(feature = "serde")]
+fn benchmark_file_serde<T: serde::de::DeserializeOwned>(
+    c: &mut Criterion,
+    file_name: &str,
+    bytes: Bytes,
+) {
+    let mut group = c.benchmark_group("read_serde");
+    group.throughput(Throughput::Bytes(bytes.len() as u64));
+
+    group.bench_function(file_name, |b| {
+        b.iter_batched(
             || bytes.clone(),
-            |bytes| {
-                crab_nbt::serde::de::from_bytes::<test_data_definitions::ComplexPlayer>(bytes)
-                    .expect("Failed to parse NBT")
+            |mut bytes| {
+                crab_nbt::serde::de::from_bytes::<T>(&mut bytes).expect("Failed to parse NBT");
             },
             BatchSize::SmallInput,
         )
     });
 }
 
-criterion_group!(benches, criterion_benchmark);
+fn benchmark(criterion: &mut Criterion) {
+    let bytes = read_file("tests/data/chunk.nbt");
+    benchmark_file(criterion, "chunk", Bytes::clone(&bytes));
+    #[cfg(feature = "serde")]
+    benchmark_file_serde::<Chunk>(criterion, "chunk", bytes);
+
+    let bytes = read_compressed_file("tests/data/complex_player.dat");
+    benchmark_file(criterion, "complex_player", Bytes::clone(&bytes));
+    #[cfg(feature = "serde")]
+    benchmark_file_serde::<ComplexPlayer>(criterion, "complex_player", bytes);
+}
+
+criterion_group!(benches, benchmark);
 criterion_main!(benches);
