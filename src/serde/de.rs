@@ -183,8 +183,16 @@ impl<'de, T: Buf> de::Deserializer<'de> for &mut Deserializer<'de, T> {
     where
         V: Visitor<'de>,
     {
-        let str = get_nbt_string(&mut self.input)?;
-        visitor.visit_string(str)
+        // For performance reasons, we do not call `get_nbt_string`
+        // Because we can handle it without any extra allocations
+        let length = self.input.get_u16() as usize;
+        let string_bytes = &self.input.chunk()[..length];
+        let string = from_java_cesu8(string_bytes).map_err(|_| Error::InvalidJavaString)?;
+
+        let identifier = visitor.visit_str(&string);
+        self.input.advance(length);
+
+        identifier
     }
 
     fn is_human_readable(&self) -> bool {
