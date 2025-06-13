@@ -1,8 +1,8 @@
 use serde::{Deserialize, Deserializer};
 
 /// Crates structs, that allow for serializing fields as arrays (not lists)
-/// ```ignore
-/// #[serde(with = IntArray)]
+/// ```rust ignore
+/// #[serde(with = "IntArray")]
 /// ```
 macro_rules! impl_array {
     ($name:ident, $variant:expr) => {
