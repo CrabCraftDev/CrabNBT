@@ -22,3 +22,23 @@ pub fn get_nbt_string(bytes: &mut impl Buf) -> Result<String, Error> {
     let string = from_java_cesu8(&string_bytes).map_err(|_| Error::InvalidJavaString)?;
     Ok(string.to_string())
 }
+
+// This can be improved once rust-lang/rust#132980 is resolved:
+// Instead of passing `BYTES` manually, we could use const generics, e.g. `size_of::<T>()`.
+pub(crate) fn read_array<T, const N: usize, F>(
+    bytes: &mut impl Buf,
+    len: usize,
+    from_be: F,
+) -> Vec<T>
+where
+    F: Fn([u8; N]) -> T,
+{
+    bytes
+        .copy_to_bytes(len * N)
+        .chunks_exact(N)
+        .map(|chunk| {
+            let arr: [u8; N] = chunk.try_into().expect("chunk size mismatch");
+            from_be(arr)
+        })
+        .collect()
+}
