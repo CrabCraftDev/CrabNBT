@@ -22,3 +22,22 @@ pub fn get_nbt_string(bytes: &mut impl Buf) -> Result<String, Error> {
     let string = from_java_cesu8(&string_bytes).map_err(|_| Error::InvalidJavaString)?;
     Ok(string.to_string())
 }
+
+// This could be improved when https://github.com/rust-lang/rust/issues/132980 is resolved
+pub(crate) fn read_array<T, const N: usize, F>(
+    bytes: &mut impl Buf,
+    len: usize,
+    from_be: F,
+) -> Vec<T>
+where
+    F: Fn([u8; N]) -> T,
+{
+    bytes
+        .copy_to_bytes(len * N)
+        .chunks(N)
+        .map(|chunk| {
+            let arr: [u8; N] = chunk.try_into().expect("chunk size mismatch");
+            from_be(arr)
+        })
+        .collect()
+}
