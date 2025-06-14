@@ -24,8 +24,8 @@ fn read_compressed_file(file_path: &str) -> Bytes {
     Bytes::from_iter(buffer)
 }
 
-fn benchmark_file(c: &mut Criterion, file_name: &str, bytes: Bytes) {
-    let mut group = c.benchmark_group("read");
+fn benchmark_file(criterion: &mut Criterion, file_name: &str, bytes: Bytes) {
+    let mut group = criterion.benchmark_group("read");
     group.throughput(Throughput::Bytes(bytes.len() as u64));
 
     group.bench_function(file_name, |b| {
@@ -39,11 +39,11 @@ fn benchmark_file(c: &mut Criterion, file_name: &str, bytes: Bytes) {
 
 #[cfg(feature = "serde")]
 fn benchmark_file_serde<T: serde::de::DeserializeOwned>(
-    c: &mut Criterion,
+    criterion: &mut Criterion,
     file_name: &str,
     bytes: Bytes,
 ) {
-    let mut group = c.benchmark_group("read_serde");
+    let mut group = criterion.benchmark_group("read_serde");
     group.throughput(Throughput::Bytes(bytes.len() as u64));
 
     group.bench_function(file_name, |b| {
