@@ -34,7 +34,7 @@ impl Nbt {
         }
 
         Ok(Nbt {
-            name: get_nbt_string(&mut bytes)?,
+            name: get_nbt_string(&mut bytes)?.to_string(),
             root_tag: NbtCompound::deserialize_content(&mut bytes)?,
         })
     }
