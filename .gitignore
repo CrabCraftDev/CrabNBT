@@ -15,6 +15,7 @@ Cargo.lock
 
 # Flamegraph
 flamegraph.svg
+perf.data*
 
 # Code editors
 .idea/
