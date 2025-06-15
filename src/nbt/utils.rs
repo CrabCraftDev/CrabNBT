@@ -1,3 +1,5 @@
+use std::borrow::Cow;
+
 use crate::{error::Error, slice_cursor::BinarySliceCursor};
 use cesu8::from_java_cesu8;
 
@@ -15,13 +17,10 @@ pub const COMPOUND_ID: u8 = 10;
 pub const INT_ARRAY_ID: u8 = 11;
 pub const LONG_ARRAY_ID: u8 = 12;
 
-pub fn get_nbt_string(bytes: &mut BinarySliceCursor) -> Result<String, Error> {
+pub fn get_nbt_string<'a>(bytes: &'a mut BinarySliceCursor) -> Result<Cow<'a, str>, Error> {
     let len = bytes.read_u16_be()? as usize;
     let string_bytes = bytes.read(len)?;
-    from_java_cesu8(string_bytes)
-        .as_deref()
-        .map(ToOwned::to_owned)
-        .map_err(|_| Error::InvalidJavaString)
+    from_java_cesu8(string_bytes).map_err(|_| Error::InvalidJavaString)
 }
 
 // pub trait CursorSliceGetExt<T = Self> {
