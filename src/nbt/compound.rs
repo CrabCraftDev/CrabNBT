@@ -26,7 +26,7 @@ impl NbtCompound {
                 break;
             }
 
-            let name = get_nbt_string(bytes)?;
+            let name = get_nbt_string(bytes)?.to_string();
 
             if let Ok(tag) = NbtTag::deserialize_data(bytes, tag_id) {
                 compound.put(name, tag);

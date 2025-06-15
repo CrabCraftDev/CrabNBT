@@ -184,7 +184,7 @@ impl<'de> de::Deserializer<'de> for &mut Deserializer<'de> {
         V: Visitor<'de>,
     {
         let str = get_nbt_string(&mut self.input)?;
-        visitor.visit_string(str)
+        visitor.visit_str(&str)
     }
 
     fn is_human_readable(&self) -> bool {

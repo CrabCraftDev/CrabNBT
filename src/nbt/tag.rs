@@ -130,7 +130,7 @@ impl NbtTag {
                 let byte_array = bytes.read(len)?.to_vec();
                 Ok(NbtTag::ByteArray(byte_array))
             }
-            STRING_ID => Ok(NbtTag::String(get_nbt_string(bytes).unwrap())),
+            STRING_ID => Ok(NbtTag::String(get_nbt_string(bytes).unwrap().to_string())),
             LIST_ID => {
                 let tag_type_id = bytes.read_u8()?;
                 let len = bytes.read_i32_be()?;
