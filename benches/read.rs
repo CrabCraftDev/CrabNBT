@@ -50,6 +50,11 @@ fn benchmark(criterion: &mut Criterion) {
         "complex_player",
         bytes,
     );
+
+    let bytes = utils::read_file("tests/data/chunk.nbt", false);
+    benchmark_file(criterion, "chunk", Bytes::clone(&bytes));
+    #[cfg(feature = "serde")]
+    benchmark_file_serde::<test_data_definitions::Chunk>(criterion, "chunk", bytes);
 }
 
 criterion_group!(benches, benchmark);

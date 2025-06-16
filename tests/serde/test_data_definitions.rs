@@ -237,3 +237,93 @@ pub struct Effect {
     #[serde(rename = "ShowParticles")]
     show_particles: i8,
 }
+
+// Example implementation of Chunk and related structures
+// Note: not all fields are implemented, just a subset for demonstration purposes
+#[derive(Debug, Serialize, Deserialize)]
+pub struct Chunk {
+    #[serde(rename = "DataVersion")]
+    pub data_version: i32,
+    #[serde(rename = "xPos")]
+    pub x_pos: i32,
+    #[serde(rename = "zPos")]
+    pub z_pos: i32,
+    #[serde(rename = "yPos")]
+    pub y_pos: i32,
+    #[serde(rename = "Status")]
+    pub status: String,
+    #[serde(rename = "LastUpdate")]
+    pub last_update: i64,
+    pub sections: Vec<RawSection>,
+    #[serde(rename = "block_entities")]
+    pub block_entities: Option<Vec<BlockEntity>>,
+    #[serde(rename = "Heightmaps")]
+    pub heightmaps: Option<Heightmaps>,
+    #[serde(rename = "Lights")]
+    pub lights: Option<Vec<Vec<i16>>>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct RawSection {
+    #[serde(rename = "Y")]
+    pub y: i8,
+    pub block_states: BlockStates,
+    pub biomes: Biomes,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct BlockEntity {
+    pub id: String,
+    pub x: i32,
+    pub y: i32,
+    pub z: i32,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct Section {
+    #[serde(rename = "Y")]
+    pub y: i8,
+    #[serde(rename = "block_states")]
+    pub block_states: BlockStates,
+    pub biomes: Biomes,
+    #[serde(rename = "BlockLight")]
+    pub block_light: Option<Vec<u8>>,
+    #[serde(rename = "SkyLight")]
+    pub sky_light: Option<Vec<u8>>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct BlockStates {
+    pub palette: Vec<BlockStatePaletteEntry>,
+    pub data: Option<Vec<i64>>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct BlockStatePaletteEntry {
+    #[serde(rename = "Name")]
+    pub name: String,
+    #[serde(rename = "Properties")]
+    pub properties: Option<HashMap<String, String>>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct BiomesPaletteEntry {
+    #[serde(rename = "Name")]
+    pub name: String,
+    #[serde(rename = "Properties")]
+    pub properties: Option<HashMap<String, String>>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct Biomes {
+    pub palette: Vec<String>,
+    pub data: Option<Vec<i64>>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct Heightmaps {
+    #[serde(rename = "MOTION_BLOCKING")]
+    pub motion_blocking: Vec<i64>,
+    #[serde(rename = "WORLD_SURFACE")]
+    pub world_surface: Vec<i64>,
+}
