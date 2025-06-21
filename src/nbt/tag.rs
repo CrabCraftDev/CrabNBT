@@ -54,7 +54,7 @@ impl NbtTag {
                 bytes.put_slice(byte_array);
             }
             NbtTag::String(string) => {
-                let java_string = cesu8::to_java_cesu8(string);
+                let java_string = simd_cesu8::encode(string);
                 bytes.put_u16(java_string.len() as u16);
                 bytes.put_slice(&java_string);
             }
