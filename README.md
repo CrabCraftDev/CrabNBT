@@ -97,3 +97,8 @@ fn cycle() {
     assert_eq!(test, recreated_struct);
 }
 ```
+
+## Feature flags
+- `serde` - Serde integration.
+- `macro` - The `nbt!` macro for easy creation of compounds with json like syntax.
+- `nightly` - Additional performance optimizations that require the nightly Rust toolchain.
