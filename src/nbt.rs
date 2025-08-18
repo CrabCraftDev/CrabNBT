@@ -1,5 +1,4 @@
-use crate::error::Error;
-use bytes::{Buf, BufMut, Bytes, BytesMut};
+use crate::{error::Error, slice_cursor::BinarySliceCursor};
 use crab_nbt::nbt::compound::NbtCompound;
 use crab_nbt::nbt::tag::NbtTag;
 use crab_nbt::nbt::utils::*;
@@ -26,27 +25,29 @@ impl Nbt {
         }
     }
 
-    pub fn read(bytes: &mut impl Buf) -> Result<Nbt, Error> {
-        let tag_type_id = bytes.get_u8();
+    pub fn read(bytes: &[u8]) -> Result<Nbt, Error> {
+        let mut bytes = BinarySliceCursor::new(bytes);
+        let tag_type_id = bytes.read_u8()?;
 
         if tag_type_id != COMPOUND_ID {
             return Err(Error::NoRootCompound(tag_type_id));
         }
 
         Ok(Nbt {
-            name: get_nbt_string(bytes)?,
-            root_tag: NbtCompound::deserialize_content(bytes)?,
+            name: get_nbt_string(&mut bytes)?,
+            root_tag: NbtCompound::deserialize_content(&mut bytes)?,
         })
     }
 
     pub fn read_from_cursor(cursor: &mut Cursor<&[u8]>) -> Result<Nbt, Error> {
-        Self::read(cursor)
+        Self::read(cursor.get_ref())
     }
 
     /// Reads an NBT tag that doesn't contain the name of the root compound.
     /// Used in [Network NBT](https://wiki.vg/NBT#Network_NBT_(Java_Edition)).
-    pub fn read_unnamed(bytes: &mut impl Buf) -> Result<Nbt, Error> {
-        let tag_type_id = bytes.get_u8();
+    pub fn read_unnamed(bytes: &[u8]) -> Result<Nbt, Error> {
+        let mut bytes = BinarySliceCursor::new(bytes);
+        let tag_type_id = bytes.read_u8()?;
 
         if tag_type_id != COMPOUND_ID {
             return Err(Error::NoRootCompound(tag_type_id));
@@ -54,20 +55,20 @@ impl Nbt {
 
         Ok(Nbt {
             name: String::new(),
-            root_tag: NbtCompound::deserialize_content(bytes)?,
+            root_tag: NbtCompound::deserialize_content(&mut bytes)?,
         })
     }
 
     pub fn read_unnamed_from_cursor(cursor: &mut Cursor<&[u8]>) -> Result<Nbt, Error> {
-        Self::read_unnamed(cursor)
+        Self::read_unnamed(cursor.get_ref())
     }
 
-    pub fn write(&self) -> Bytes {
-        let mut bytes = BytesMut::new();
-        bytes.put_u8(COMPOUND_ID);
-        bytes.put(NbtTag::String(self.name.to_string()).serialize_data());
-        bytes.put(self.root_tag.serialize_content());
-        bytes.freeze()
+    pub fn write(&self) -> Vec<u8> {
+        let mut bytes = Vec::new();
+        bytes.push(COMPOUND_ID);
+        bytes.extend(NbtTag::String(self.name.to_string()).serialize_data());
+        bytes.extend(self.root_tag.serialize_content());
+        bytes
     }
 
     pub fn write_to_writer<W: Write>(&self, mut writer: W) -> Result<(), Error> {
@@ -77,11 +78,11 @@ impl Nbt {
 
     /// Writes NBT tag, without name of root compound.
     /// Used in [Network NBT](https://wiki.vg/NBT#Network_NBT_(Java_Edition)).
-    pub fn write_unnamed(&self) -> Bytes {
-        let mut bytes = BytesMut::new();
-        bytes.put_u8(COMPOUND_ID);
-        bytes.put(self.root_tag.serialize_content());
-        bytes.freeze()
+    pub fn write_unnamed(&self) -> Vec<u8> {
+        let mut bytes = Vec::new();
+        bytes.push(COMPOUND_ID);
+        bytes.extend(self.root_tag.serialize_content());
+        bytes
     }
 
     pub fn write_unnamed_to_writer<W: Write>(&self, mut writer: W) -> Result<(), Error> {
