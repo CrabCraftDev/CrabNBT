@@ -21,9 +21,13 @@ pub struct Deserializer<'de> {
 }
 
 impl<'de> Deserializer<'de> {
-    pub fn new(input: BinarySliceCursor<'de>, is_named: bool) -> Self {
+    pub fn new(input: &'de [u8], is_named: bool) -> Self {
+        Self::from_slice_cursor(BinarySliceCursor::new(input), is_named)
+    }
+
+    fn from_slice_cursor(slice_cursor: BinarySliceCursor<'de>, is_named: bool) -> Self {
         Deserializer {
-            input,
+            input: slice_cursor,
             tag_to_deserialize: None,
             is_named,
             is_deserializing_key: true,
@@ -36,7 +40,7 @@ pub fn from_bytes<'a, T>(s: &'a [u8]) -> Result<T>
 where
     T: Deserialize<'a>,
 {
-    let mut deserializer = Deserializer::new(BinarySliceCursor::new(s), true);
+    let mut deserializer = Deserializer::new(s, true);
     T::deserialize(&mut deserializer)
 }
 
@@ -44,8 +48,11 @@ pub fn from_cursor<'a, T>(cursor: &'a mut Cursor<&[u8]>) -> Result<T>
 where
     T: Deserialize<'a>,
 {
-    let mut deserializer = Deserializer::new(BinarySliceCursor::new(cursor.get_ref()), true);
-    T::deserialize(&mut deserializer)
+    BinarySliceCursor::wrap_io_cursor(cursor, |cursor| {
+        let mut deserializer = Deserializer::from_slice_cursor(cursor, true);
+        T::deserialize(&mut deserializer)
+    })
+    .flatten()
 }
 
 /// Deserializes struct using Serde Deserializer from normal NBT
