@@ -7,6 +7,7 @@ use serde::de::value::SeqDeserializer;
 use serde::de::{self, DeserializeSeed, IntoDeserializer, MapAccess, SeqAccess, Visitor};
 use serde::{forward_to_deserialize_any, Deserialize};
 use std::io::Cursor;
+use std::io::Seek;
 use std::vec::IntoIter;
 
 #[derive(Debug)]
@@ -21,9 +22,13 @@ pub struct Deserializer<'de> {
 }
 
 impl<'de> Deserializer<'de> {
-    pub fn new(input: BinarySliceCursor<'de>, is_named: bool) -> Self {
+    pub fn new(input: &'de [u8], is_named: bool) -> Self {
+        Self::from_slice_cursor(BinarySliceCursor::new(input), is_named)
+    }
+
+    fn from_slice_cursor(slice_cursor: BinarySliceCursor<'de>, is_named: bool) -> Self {
         Deserializer {
-            input,
+            input: slice_cursor,
             tag_to_deserialize: None,
             is_named,
             is_deserializing_key: true,
@@ -36,7 +41,7 @@ pub fn from_bytes<'a, T>(s: &'a [u8]) -> Result<T>
 where
     T: Deserialize<'a>,
 {
-    let mut deserializer = Deserializer::new(BinarySliceCursor::new(s), true);
+    let mut deserializer = Deserializer::new(s, true);
     T::deserialize(&mut deserializer)
 }
 
@@ -44,8 +49,12 @@ pub fn from_cursor<'a, T>(cursor: &'a mut Cursor<&[u8]>) -> Result<T>
 where
     T: Deserialize<'a>,
 {
-    let mut deserializer = Deserializer::new(BinarySliceCursor::new(cursor.get_ref()), true);
-    T::deserialize(&mut deserializer)
+    let slice_cursor: BinarySliceCursor<'_> =
+        BinarySliceCursor::new(&cursor.get_ref()[cursor.position() as usize..]);
+    let mut deserializer = Deserializer::from_slice_cursor(slice_cursor, true);
+    let result = T::deserialize(&mut deserializer)?;
+    cursor.seek_relative(deserializer.input.pos() as i64)?;
+    Ok(result)
 }
 
 /// Deserializes struct using Serde Deserializer from normal NBT
@@ -53,7 +62,7 @@ pub fn from_bytes_unnamed<'a, T>(s: &'a [u8]) -> Result<T>
 where
     T: Deserialize<'a>,
 {
-    let mut deserializer = Deserializer::new(BinarySliceCursor::new(s), false);
+    let mut deserializer = Deserializer::new(s, false);
     T::deserialize(&mut deserializer)
 }
 
@@ -61,8 +70,12 @@ pub fn from_cursor_unnamed<'a, T>(cursor: &'a mut Cursor<&[u8]>) -> Result<T>
 where
     T: Deserialize<'a>,
 {
-    let mut deserializer = Deserializer::new(BinarySliceCursor::new(cursor.get_ref()), false);
-    T::deserialize(&mut deserializer)
+    let slice_cursor: BinarySliceCursor<'_> =
+        BinarySliceCursor::new(&cursor.get_ref()[cursor.position() as usize..]);
+    let mut deserializer = Deserializer::from_slice_cursor(slice_cursor, false);
+    let result = T::deserialize(&mut deserializer)?;
+    cursor.seek_relative(deserializer.input.pos() as i64)?;
+    Ok(result)
 }
 
 impl<'de> de::Deserializer<'de> for &mut Deserializer<'de> {
@@ -95,7 +108,7 @@ impl<'de> de::Deserializer<'de> for &mut Deserializer<'de> {
         };
 
         let result: Result<V::Value> = Ok(
-            match NbtTag::deserialize_data(&mut self.input, tag_to_deserialize)? {
+            match NbtTag::deserialize_data_internal(&mut self.input, tag_to_deserialize)? {
                 NbtTag::Byte(value) => visitor.visit_i8::<Error>(value)?,
                 NbtTag::Short(value) => visitor.visit_i16::<Error>(value)?,
                 NbtTag::Int(value) => visitor.visit_i32::<Error>(value)?,
