@@ -6,14 +6,14 @@ use std::{
 use crate::error::Error;
 
 #[derive(Default, Eq, PartialEq)]
-pub struct BinarySliceCursor<'a> {
+pub(crate) struct BinarySliceCursor<'a> {
     inner: &'a [u8],
     pos: usize,
 }
 
 impl<'a> BinarySliceCursor<'a> {
     /// Creates a new cursor from a binary slice
-    pub fn new(slice: &'a [u8]) -> Self {
+    pub(crate) fn new(slice: &'a [u8]) -> Self {
         Self {
             inner: slice,
             pos: 0,
@@ -25,12 +25,10 @@ impl<'a> BinarySliceCursor<'a> {
         self.pos
     }
 
-    /// Sets cursor position
-    pub fn set_pos(&mut self, pos: usize) {
-        self.pos = pos;
-    }
-
     /// Skips n bytes
+    // Currently used only by serde, so cfg avoids dead code warning
+    // Remove cfg if you need this
+    #[cfg(feature = "serde")]
     pub fn skip(&mut self, n: usize) {
         self.pos += n;
     }
@@ -73,11 +71,6 @@ impl<'a> BinarySliceCursor<'a> {
     /// Reads big endian u16
     pub fn read_u16_be(&mut self) -> Result<u16, Error> {
         Ok(u16::from_be_bytes(*self.read_array::<2>()?))
-    }
-
-    /// Reads big endian u32
-    pub fn read_u32_be(&mut self) -> Result<u32, Error> {
-        Ok(u32::from_be_bytes(*self.read_array::<4>()?))
     }
 
     /// Reads big endian i8
@@ -153,8 +146,10 @@ mod test {
 
     #[test]
     fn test_get_slice() {
-        let mut cursor = BinarySliceCursor::new(&[0, 1, 2, 3, 4, 5, 6][..]);
-        cursor.set_pos(2);
+        let mut cursor = BinarySliceCursor {
+            inner: &[0, 1, 2, 3, 4, 5, 6][..],
+            pos: 2,
+        };
         let slice = cursor.read(3).unwrap();
         assert_eq!(slice, &[2, 3, 4][..]);
         let slice2 = cursor.read(10).unwrap_err();

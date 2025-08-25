@@ -96,7 +96,7 @@ impl<'de> de::Deserializer<'de> for &mut Deserializer<'de> {
         match tag_to_deserialize {
             LIST_ID => {
                 let list_type = self.input.read_u8()?;
-                let remaining_values = self.input.read_u32_be()?;
+                let remaining_values = self.input.read_i32_be()?;
                 return visitor.visit_seq(ListAccess {
                     de: self,
                     list_type,
@@ -239,7 +239,7 @@ impl<'de> MapAccess<'de> for CompoundAccess<'_, 'de> {
 
 struct ListAccess<'a, 'de: 'a> {
     de: &'a mut Deserializer<'de>,
-    remaining_values: u32,
+    remaining_values: i32,
     list_type: u8,
 }
 
