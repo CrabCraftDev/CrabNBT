@@ -1,6 +1,5 @@
 use std::{fs, io::Read};
 
-use bytes::Bytes;
 use flate2::bufread::GzDecoder;
 
 #[allow(unused)]
@@ -15,11 +14,11 @@ pub fn decompress_data(buffer: &[u8]) -> Vec<u8> {
 }
 
 #[allow(unused)]
-pub fn read_file(file_path: &str, compressed: bool) -> Bytes {
-    let data = &fs::read(file_path).expect("Failed to open file")[..];
+pub fn read_file(file_path: &str, compressed: bool) -> Vec<u8> {
+    let data = fs::read(file_path).expect("Failed to open file");
     if compressed {
-        Bytes::from_iter(decompress_data(data))
+        decompress_data(&data[..])
     } else {
-        Bytes::from_iter(data.iter().copied())
+        data
     }
 }

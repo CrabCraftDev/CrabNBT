@@ -1,4 +1,3 @@
-use bytes::BytesMut;
 use crab_nbt::serde::arrays::IntArray;
 use crab_nbt::serde::bool::deserialize_option_bool;
 use crab_nbt::serde::de::from_bytes_unnamed;
@@ -54,7 +53,7 @@ fn test_serialize() {
 
 #[test]
 fn test_deserialize() {
-    let mut test = BytesMut::from(
+    let mut test = Vec::from(
         &nbt!("", {
             "str": "hi ❤️",
             "boolean": false,
