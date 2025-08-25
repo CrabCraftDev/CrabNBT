@@ -1,4 +1,7 @@
-use std::fmt::Debug;
+use std::{
+    fmt::Debug,
+    io::{Cursor, Seek as _},
+};
 
 use crate::error::Error;
 
@@ -15,6 +18,11 @@ impl<'a> BinarySliceCursor<'a> {
             inner: slice,
             pos: 0,
         }
+    }
+
+    /// Gets current cursor position
+    pub fn pos(&self) -> usize {
+        self.pos
     }
 
     /// Sets cursor position
@@ -100,6 +108,18 @@ impl<'a> BinarySliceCursor<'a> {
     /// Reads big endian f64
     pub fn read_f64_be(&mut self) -> Result<f64, Error> {
         Ok(f64::from_be_bytes(*self.read_array::<8>()?))
+    }
+
+    /// Wraps [std::io::Cursor] allowing it to be used as a BinarySliceCursor in the provided callback
+    pub fn wrap_io_cursor<'x, T, F>(cursor: &mut Cursor<&'x [u8]>, f: F) -> Result<T, Error>
+    where
+        F: for<'b> FnOnce(&'b mut BinarySliceCursor<'x>) -> T,
+    {
+        let mut slice_cursor: BinarySliceCursor<'_> =
+            BinarySliceCursor::new(&cursor.get_ref()[cursor.position() as usize..]);
+        let result = f(&mut slice_cursor);
+        cursor.seek_relative(slice_cursor.pos() as i64)?;
+        Ok(result)
     }
 }
 

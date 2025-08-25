@@ -26,7 +26,14 @@ impl Nbt {
     }
 
     pub fn read(bytes: &[u8]) -> Result<Nbt, Error> {
-        let mut bytes = BinarySliceCursor::new(bytes);
+        Self::read_internal(&mut BinarySliceCursor::new(bytes))
+    }
+
+    pub fn read_from_cursor(cursor: &mut Cursor<&[u8]>) -> Result<Nbt, Error> {
+        BinarySliceCursor::wrap_io_cursor(cursor, Self::read_internal).flatten()
+    }
+
+    pub(crate) fn read_internal(bytes: &mut BinarySliceCursor) -> Result<Nbt, Error> {
         let tag_type_id = bytes.read_u8()?;
 
         if tag_type_id != COMPOUND_ID {
@@ -34,19 +41,22 @@ impl Nbt {
         }
 
         Ok(Nbt {
-            name: get_nbt_string(&mut bytes)?.to_string(),
-            root_tag: NbtCompound::deserialize_content(&mut bytes)?,
+            name: get_nbt_string(bytes)?.to_string(),
+            root_tag: NbtCompound::deserialize_content_internal(bytes)?,
         })
-    }
-
-    pub fn read_from_cursor(cursor: &mut Cursor<&[u8]>) -> Result<Nbt, Error> {
-        Self::read(cursor.get_ref())
     }
 
     /// Reads an NBT tag that doesn't contain the name of the root compound.
     /// Used in [Network NBT](https://wiki.vg/NBT#Network_NBT_(Java_Edition)).
     pub fn read_unnamed(bytes: &[u8]) -> Result<Nbt, Error> {
-        let mut bytes = BinarySliceCursor::new(bytes);
+        Self::read_unnamed_internal(&mut BinarySliceCursor::new(bytes))
+    }
+
+    pub fn read_unnamed_from_cursor(cursor: &mut Cursor<&[u8]>) -> Result<Nbt, Error> {
+        BinarySliceCursor::wrap_io_cursor(cursor, Self::read_unnamed_internal).flatten()
+    }
+
+    pub(crate) fn read_unnamed_internal(bytes: &mut BinarySliceCursor) -> Result<Nbt, Error> {
         let tag_type_id = bytes.read_u8()?;
 
         if tag_type_id != COMPOUND_ID {
@@ -55,12 +65,8 @@ impl Nbt {
 
         Ok(Nbt {
             name: String::new(),
-            root_tag: NbtCompound::deserialize_content(&mut bytes)?,
+            root_tag: NbtCompound::deserialize_content_internal(bytes)?,
         })
-    }
-
-    pub fn read_unnamed_from_cursor(cursor: &mut Cursor<&[u8]>) -> Result<Nbt, Error> {
-        Self::read_unnamed(cursor.get_ref())
     }
 
     pub fn write(&self) -> Vec<u8> {

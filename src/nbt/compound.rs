@@ -17,7 +17,19 @@ impl NbtCompound {
         }
     }
 
-    pub fn deserialize_content(bytes: &mut BinarySliceCursor) -> Result<NbtCompound, Error> {
+    pub fn deserialize_content(bytes: &[u8]) -> Result<NbtCompound, Error> {
+        Self::deserialize_content_internal(&mut BinarySliceCursor::new(bytes))
+    }
+
+    pub fn deserialize_content_from_cursor(
+        cursor: &mut Cursor<&[u8]>,
+    ) -> Result<NbtCompound, Error> {
+        BinarySliceCursor::wrap_io_cursor(cursor, Self::deserialize_content_internal).flatten()
+    }
+
+    pub(crate) fn deserialize_content_internal(
+        bytes: &mut BinarySliceCursor,
+    ) -> Result<NbtCompound, Error> {
         let mut compound = NbtCompound::new();
 
         while bytes.has_remaining() {
@@ -28,7 +40,7 @@ impl NbtCompound {
 
             let name = get_nbt_string(bytes)?.to_string();
 
-            if let Ok(tag) = NbtTag::deserialize_data(bytes, tag_id) {
+            if let Ok(tag) = NbtTag::deserialize_data_internal(bytes, tag_id) {
                 compound.put(name, tag);
             } else {
                 break;
@@ -36,12 +48,6 @@ impl NbtCompound {
         }
 
         Ok(compound)
-    }
-
-    pub fn deserialize_content_from_cursor(
-        cursor: &mut Cursor<&[u8]>,
-    ) -> Result<NbtCompound, Error> {
-        Self::deserialize_content(&mut BinarySliceCursor::new(cursor.get_ref()))
     }
 
     pub fn serialize_content(&self) -> Vec<u8> {

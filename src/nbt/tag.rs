@@ -85,16 +85,37 @@ impl NbtTag {
         bytes
     }
 
-    pub fn deserialize(bytes: &mut BinarySliceCursor) -> Result<NbtTag, Error> {
-        let tag_id = bytes.read_u8()?;
-        Self::deserialize_data(bytes, tag_id)
+    pub fn deserialize(bytes: &[u8]) -> Result<NbtTag, Error> {
+        Self::deserialize_internal(&mut BinarySliceCursor::new(bytes))
     }
 
     pub fn deserialize_from_cursor(cursor: &mut Cursor<&[u8]>) -> Result<NbtTag, Error> {
-        Self::deserialize(&mut BinarySliceCursor::new(cursor.get_ref()))
+        BinarySliceCursor::wrap_io_cursor(cursor, Self::deserialize_internal).flatten()
     }
 
-    pub fn deserialize_data(bytes: &mut BinarySliceCursor, tag_id: u8) -> Result<NbtTag, Error> {
+    pub(crate) fn deserialize_internal(bytes: &mut BinarySliceCursor) -> Result<NbtTag, Error> {
+        let tag_id = bytes.read_u8()?;
+        Self::deserialize_data_internal(bytes, tag_id)
+    }
+
+    pub fn deserialize_data(bytes: &[u8], tag_id: u8) -> Result<NbtTag, Error> {
+        Self::deserialize_data_internal(&mut BinarySliceCursor::new(bytes), tag_id)
+    }
+
+    pub fn deserialize_data_from_cursor(
+        bytes: &mut Cursor<&[u8]>,
+        tag_id: u8,
+    ) -> Result<NbtTag, Error> {
+        BinarySliceCursor::wrap_io_cursor(bytes, |cursor| {
+            Self::deserialize_data_internal(cursor, tag_id)
+        })
+        .flatten()
+    }
+
+    pub(crate) fn deserialize_data_internal(
+        bytes: &mut BinarySliceCursor,
+        tag_id: u8,
+    ) -> Result<NbtTag, Error> {
         match tag_id {
             END_ID => Ok(NbtTag::End),
             BYTE_ID => {
@@ -132,13 +153,15 @@ impl NbtTag {
                 let len = bytes.read_i32_be()?;
                 let mut list = Vec::with_capacity(len as usize);
                 for _ in 0..len {
-                    let tag = NbtTag::deserialize_data(bytes, tag_type_id)?;
+                    let tag = NbtTag::deserialize_data_internal(bytes, tag_type_id)?;
                     assert_eq!(tag.get_type_id(), tag_type_id);
                     list.push(tag);
                 }
                 Ok(NbtTag::List(list))
             }
-            COMPOUND_ID => Ok(NbtTag::Compound(NbtCompound::deserialize_content(bytes)?)),
+            COMPOUND_ID => Ok(NbtTag::Compound(NbtCompound::deserialize_content_internal(
+                bytes,
+            )?)),
             INT_ARRAY_ID => {
                 const BYTES: usize = size_of::<i32>();
 
@@ -155,13 +178,6 @@ impl NbtTag {
             }
             _ => Err(Error::UnknownTagId(tag_id)),
         }
-    }
-
-    pub fn deserialize_data_from_cursor(
-        cursor: &mut Cursor<&[u8]>,
-        tag_id: u8,
-    ) -> Result<NbtTag, Error> {
-        Self::deserialize_data(&mut BinarySliceCursor::new(cursor.get_ref()), tag_id)
     }
 
     pub fn extract_byte(&self) -> Option<i8> {

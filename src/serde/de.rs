@@ -95,7 +95,7 @@ impl<'de> de::Deserializer<'de> for &mut Deserializer<'de> {
         };
 
         let result: Result<V::Value> = Ok(
-            match NbtTag::deserialize_data(&mut self.input, tag_to_deserialize)? {
+            match NbtTag::deserialize_data_internal(&mut self.input, tag_to_deserialize)? {
                 NbtTag::Byte(value) => visitor.visit_i8::<Error>(value)?,
                 NbtTag::Short(value) => visitor.visit_i16::<Error>(value)?,
                 NbtTag::Int(value) => visitor.visit_i32::<Error>(value)?,
