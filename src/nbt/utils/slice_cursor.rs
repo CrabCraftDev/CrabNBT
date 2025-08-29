@@ -5,6 +5,10 @@ use std::{
 
 use crate::error::Error;
 
+/// Our implementation of a cursor over a slice of bytes (`&[u8])
+/// It has only what we need, and does not touch [std::io]
+/// Thus it is simpler then a crate like `byteorder`
+/// It also provides more human friendly errors in case something goes wrong
 #[derive(Default, Eq, PartialEq)]
 pub(crate) struct BinarySliceCursor<'a> {
     inner: &'a [u8],
@@ -12,7 +16,6 @@ pub(crate) struct BinarySliceCursor<'a> {
 }
 
 impl<'a> BinarySliceCursor<'a> {
-    /// Creates a new cursor from a binary slice
     pub(crate) fn new(slice: &'a [u8]) -> Self {
         Self {
             inner: slice,
@@ -20,24 +23,30 @@ impl<'a> BinarySliceCursor<'a> {
         }
     }
 
-    /// Gets current cursor position
-    pub fn pos(&self) -> usize {
+    pub fn position(&self) -> usize {
         self.pos
     }
 
-    /// Skips n bytes
     // Currently used only by serde, so cfg avoids dead code warning
     // Remove cfg if you need this
     #[cfg(feature = "serde")]
-    pub fn skip(&mut self, n: usize) {
-        self.pos += n;
+    pub fn skip(&mut self, amount: usize) -> Result<(), Error> {
+        let new_pos = self.pos + amount;
+        if new_pos >= self.inner.len() {
+            return Err(Error::InvalidSkip {
+                amount,
+                available: self.inner.len(),
+            });
+        }
+        self.pos = new_pos;
+        Ok(())
     }
 
     pub fn has_remaining(&self) -> bool {
         self.pos < self.inner.len()
     }
 
-    /// Reads count bytes as a slice
+    /// Reads `count` bytes as a slice
     pub fn read(&mut self, count: usize) -> Result<&[u8], Error> {
         let len = self.inner.len();
         let end_index = self.pos + count;
@@ -54,51 +63,42 @@ impl<'a> BinarySliceCursor<'a> {
         }
     }
 
-    /// Reads N bytes as an array
+    /// Reads `N` bytes as an array
     pub fn read_array<const N: usize>(&mut self) -> Result<&[u8; N], Error> {
         let slice = self.read(N)?;
-        debug_assert_eq!(slice.len(), N);
         Ok(slice
             .try_into()
             .expect("slice should be of the requested length"))
     }
 
-    /// Reads one byte
     pub fn read_u8(&mut self) -> Result<u8, Error> {
         Ok(u8::from_be_bytes(*self.read_array::<1>()?))
     }
 
-    /// Reads big endian u16
     pub fn read_u16_be(&mut self) -> Result<u16, Error> {
         Ok(u16::from_be_bytes(*self.read_array::<2>()?))
     }
 
-    /// Reads big endian i8
     pub fn read_i8(&mut self) -> Result<i8, Error> {
         Ok(i8::from_be_bytes(*self.read_array::<1>()?))
     }
 
-    /// Reads big endian i16
     pub fn read_i16_be(&mut self) -> Result<i16, Error> {
         Ok(i16::from_be_bytes(*self.read_array::<2>()?))
     }
 
-    /// Reads big endian i32
     pub fn read_i32_be(&mut self) -> Result<i32, Error> {
         Ok(i32::from_be_bytes(*self.read_array::<4>()?))
     }
 
-    /// Reads big endian i64
     pub fn read_i64_be(&mut self) -> Result<i64, Error> {
         Ok(i64::from_be_bytes(*self.read_array::<8>()?))
     }
 
-    /// Reads big endian f32
     pub fn read_f32_be(&mut self) -> Result<f32, Error> {
         Ok(f32::from_be_bytes(*self.read_array::<4>()?))
     }
 
-    /// Reads big endian f64
     pub fn read_f64_be(&mut self) -> Result<f64, Error> {
         Ok(f64::from_be_bytes(*self.read_array::<8>()?))
     }
@@ -111,7 +111,7 @@ impl<'a> BinarySliceCursor<'a> {
         let mut slice_cursor: BinarySliceCursor<'_> =
             BinarySliceCursor::new(&cursor.get_ref()[cursor.position() as usize..]);
         let result = f(&mut slice_cursor);
-        cursor.seek_relative(slice_cursor.pos() as i64)?;
+        cursor.seek_relative(slice_cursor.position() as i64)?;
         Ok(result)
     }
 }
@@ -142,7 +142,7 @@ impl<'a> Debug for BinarySliceCursor<'a> {
 
 #[cfg(test)]
 mod test {
-    use crate::{error::Error, slice_cursor::BinarySliceCursor};
+    use crate::{error::Error, nbt::slice_cursor::BinarySliceCursor};
 
     #[test]
     fn test_get_slice() {

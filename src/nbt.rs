@@ -1,4 +1,4 @@
-use crate::{error::Error, slice_cursor::BinarySliceCursor};
+use crate::{error::Error, nbt::utils::slice_cursor::BinarySliceCursor};
 use crab_nbt::nbt::compound::NbtCompound;
 use crab_nbt::nbt::tag::NbtTag;
 use crab_nbt::nbt::utils::*;

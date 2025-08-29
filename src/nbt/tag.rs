@@ -4,7 +4,7 @@ use crab_nbt::nbt::utils::*;
 use derive_more::From;
 use std::io::Cursor;
 
-use crate::slice_cursor::BinarySliceCursor;
+use crate::nbt::slice_cursor::BinarySliceCursor;
 
 /// Enum representing the different types of NBT tags.
 /// Each variant corresponds to a different type of data that can be stored in an NBT tag.

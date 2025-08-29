@@ -1,7 +1,9 @@
 use std::borrow::Cow;
 
-use crate::{error::Error, slice_cursor::BinarySliceCursor};
+use crate::{error::Error, nbt::utils::slice_cursor::BinarySliceCursor};
 use simd_cesu8::decode;
+
+pub(crate) mod slice_cursor;
 
 pub const END_ID: u8 = 0;
 pub const BYTE_ID: u8 = 1;

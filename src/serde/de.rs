@@ -1,7 +1,6 @@
 use crate::error::{Error, Result};
 use crate::nbt::utils::get_nbt_string;
-use crate::nbt::utils::{BYTE_ID, COMPOUND_ID, END_ID, LIST_ID};
-use crate::slice_cursor::BinarySliceCursor;
+use crate::nbt::utils::{slice_cursor::BinarySliceCursor, BYTE_ID, COMPOUND_ID, END_ID, LIST_ID};
 use crate::NbtTag;
 use serde::de::value::SeqDeserializer;
 use serde::de::{self, DeserializeSeed, IntoDeserializer, MapAccess, SeqAccess, Visitor};
@@ -53,7 +52,7 @@ where
         BinarySliceCursor::new(&cursor.get_ref()[cursor.position() as usize..]);
     let mut deserializer = Deserializer::from_slice_cursor(slice_cursor, true);
     let result = T::deserialize(&mut deserializer)?;
-    cursor.seek_relative(deserializer.input.pos() as i64)?;
+    cursor.seek_relative(deserializer.input.position() as i64)?;
     Ok(result)
 }
 
@@ -74,7 +73,7 @@ where
         BinarySliceCursor::new(&cursor.get_ref()[cursor.position() as usize..]);
     let mut deserializer = Deserializer::from_slice_cursor(slice_cursor, false);
     let result = T::deserialize(&mut deserializer)?;
-    cursor.seek_relative(deserializer.input.pos() as i64)?;
+    cursor.seek_relative(deserializer.input.position() as i64)?;
     Ok(result)
 }
 
@@ -172,7 +171,7 @@ impl<'de> de::Deserializer<'de> for &mut Deserializer<'de> {
             if self.is_named {
                 // Compound name is never used, so we can skip it
                 let length = self.input.read_u16_be()? as usize;
-                self.input.skip(length);
+                self.input.skip(length)?;
             }
         }
 

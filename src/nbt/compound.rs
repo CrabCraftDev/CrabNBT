@@ -1,4 +1,4 @@
-use crate::{error::Error, slice_cursor::BinarySliceCursor, Nbt};
+use crate::{error::Error, nbt::slice_cursor::BinarySliceCursor, Nbt};
 use crab_nbt::nbt::tag::NbtTag;
 use crab_nbt::nbt::utils::{get_nbt_string, END_ID};
 use derive_more::Into;
