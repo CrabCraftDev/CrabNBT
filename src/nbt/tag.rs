@@ -283,8 +283,9 @@ impl Display for NbtTag {
             Self::Short(x) => write!(f, "{x}s"),
             Self::Int(x) => write!(f, "{x}"),
             Self::Long(x) => write!(f, "{x}L"),
-            Self::Float(x) => write!(f, "{x}f"),
-            Self::Double(x) => write!(f, "{x}d"),
+            // using debug here matches Minecraft on whole numbers (3.0 instead of 3)
+            Self::Float(x) => write!(f, "{x:?}f"),
+            Self::Double(x) => write!(f, "{x:?}d"),
             Self::ByteArray(arr) => write_listlike(
                 f, "B; ", "B",
                 arr.iter().map(|b| *b as i8)
