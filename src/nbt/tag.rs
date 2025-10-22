@@ -3,6 +3,7 @@ use crab_nbt::error::Error;
 use crab_nbt::nbt::compound::NbtCompound;
 use crab_nbt::nbt::utils::*;
 use derive_more::From;
+use std::fmt::{Display, Formatter};
 use std::io::Cursor;
 
 /// Enum representing the different types of NBT tags.
@@ -272,4 +273,38 @@ impl From<bool> for NbtTag {
     fn from(value: bool) -> Self {
         NbtTag::Byte(value as i8)
     }
+}
+
+impl Display for NbtTag {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::End => Ok(()),
+            Self::Byte(x) => write!(f, "{x}b"),
+            Self::Short(x) => write!(f, "{x}s"),
+            Self::Int(x) => write!(f, "{x}"),
+            Self::Long(x) => write!(f, "{x}L"),
+            Self::Float(x) => write!(f, "{x}f"),
+            Self::Double(x) => write!(f, "{x}d"),
+            Self::ByteArray(arr) => write_listlike(
+                f, "B; ", "B",
+                arr.iter().map(|b| *b as i8)
+            ),
+            Self::String(s) => write!(f, "{}", escape_string_value(s)),
+            Self::List(list) => write_listlike(f, "", "", list),
+            Self::Compound(compound) => write!(f, "{compound}"),
+            Self::IntArray(arr) => write_listlike(f, "I; ", "", arr),
+            Self::LongArray(arr) => write_listlike(f, "L; ", "L", arr)
+        }
+    }
+}
+
+fn write_listlike<T: Display, I: IntoIterator<Item = T>>
+    (f: &mut Formatter<'_>, prefix: &'static str, affix: &'static str, arr: I)
+    -> std::fmt::Result {
+    write!(f, "[{prefix}")?;
+    join_formatted(
+        f, ", ",
+        arr.into_iter().map(|x| move |f: &mut Formatter<'_>| write!(f, "{x}{affix}"))
+    )?;
+    write!(f, "]")
 }
