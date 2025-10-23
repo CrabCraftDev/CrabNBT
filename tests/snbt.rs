@@ -1,5 +1,5 @@
 use bytes::Bytes;
-use crab_nbt::{/*nbt::tag::escape_string_value,*/ NbtTag, nbt};
+use crab_nbt::{NbtTag, nbt};
 
 
 #[test]
@@ -60,11 +60,3 @@ fn complex_compound() {
     });
     assert_eq!(nbt.to_string(), test_string)
 }
-
-// #[test]
-// fn string_escape() {
-//     assert_eq!(escape_string_value("minecraft:grass_block"), "\"minecraft:grass_block\"");
-//     assert_eq!(escape_string_value("\"I am a JSON string!\""), "\'\"I am a JSON string!\"\'");
-//     assert_eq!(escape_string_value("I am very normal"), "\"I am very normal\"");
-//     assert_eq!(escape_string_value("Idontevenhavespaces"), "\"Idontevenhavespaces\"");
-// }
