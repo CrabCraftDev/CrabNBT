@@ -45,8 +45,8 @@ where
         .collect()
 }
 
-// like [T]::join, but allowing for formatting
-// Runs a sequence of formatting functions, interspersed with instances of `separator`
+/// like [T]::join, but allowing for formatting
+/// Runs a sequence of formatting functions, interspersed with instances of `separator`
 pub(crate) fn join_formatted<Separator, I, F>
     (f: &mut Formatter<'_>, separator: Separator, iterator: I) -> std::fmt::Result 
     where Separator: Clone + Display, 
@@ -92,4 +92,30 @@ pub(crate) fn escape_string_value(s: &str) -> String {
     output.replace_range(0..1, &escape_char.to_string());
     output.push(escape_char);
     output
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn escape_name_no_quotes() {
+        assert_eq!(escape_name("hello1234"), "hello1234");
+        assert_eq!(escape_name("1234_hello__..WORLD"), "1234_hello__..WORLD");
+        assert_eq!(escape_name("...boo"), "...boo");
+    }
+
+    #[test]
+    fn escape_name_normal_quotes() {
+        assert_eq!(escape_name("minecraft:damage"), "\"minecraft:damage\"");
+        assert_eq!(escape_name("i haveaspace"), "\"i haveaspace\"");
+        assert_eq!(escape_name("i have many spaces"), "\"i have many spaces\"");
+        assert_eq!(escape_name("single'double\""), "\"single'double\\\"\"");
+    }
+
+    #[test]
+    fn escape_name_single_quotes() {
+        assert_eq!(escape_name("ineed\"special\"handling"), "'ineed\"special\"handling'");
+        assert_eq!(escape_name("double\"single'"), "'double\"single\\''")
+    }
 }
