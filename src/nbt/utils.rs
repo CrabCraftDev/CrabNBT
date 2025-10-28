@@ -71,26 +71,25 @@ pub(crate) fn escape_name(s: &str) -> String {
 }
 
 pub(crate) fn escape_string_value(s: &str) -> String {
-    let mut output = String::with_capacity(s.as_bytes().len() + 2); // +2 because ""
-    // using str here is a bit weird, but it is the best way to allow use of String::replace_range
-    let mut escape_char = None;
-    output.push('"');
+    let mut output = String::with_capacity(s.len() + 2); // +2 because ""
+    let mut chosen_quote = None;
+    output.push('"');  // placeholder character until we know what quote to use
     for c in s.chars() {
         if c == '\\' {
             output.push('\\');
         } else if c == '"' || c == '\'' {
-            if escape_char.is_none() {
-                escape_char = Some(if c == '"' { "\'" } else { "\"" });
+            if chosen_quote.is_none() {
+                chosen_quote = Some(if c == '"' { '\'' } else { '"' });
             }
-            if escape_char.map(|d| d.starts_with(c)).unwrap_or(false) {
+            if chosen_quote.map(|q| q == c).unwrap_or(false) {
                 output.push('\\');
             }
         }
         output.push(c);
     }
 
-    let escape_char = escape_char.unwrap_or("\"");
-    output.replace_range(0..1, escape_char);
-    output.push_str(escape_char);
+    let escape_char = chosen_quote.unwrap_or('\"');
+    output.replace_range(0..1, &escape_char.to_string());
+    output.push(escape_char);
     output
 }
