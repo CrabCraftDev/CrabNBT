@@ -63,7 +63,7 @@ impl<'de> Deserialize<'de> for NbtTag {
         impl<'de> serde::de::Visitor<'de> for NbtTagVisitor {
             type Value = NbtTag;
 
-            fn expecting(&self, formatter: &mut Formatter) -> std::fmt::Result {
+            fn expecting(&self, formatter: &mut Formatter) -> fmt::Result {
                 formatter.write_str("an NBT tag")
             }
 
@@ -151,7 +151,7 @@ impl<'de> Deserialize<'de> for NbtCompound {
         impl<'de> serde::de::Visitor<'de> for NbtCompoundVisitor {
             type Value = NbtCompound;
 
-            fn expecting(&self, formatter: &mut Formatter) -> std::fmt::Result {
+            fn expecting(&self, formatter: &mut Formatter) -> fmt::Result {
                 formatter.write_str("an NBT compound")
             }
 

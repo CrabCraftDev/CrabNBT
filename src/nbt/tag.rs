@@ -276,7 +276,7 @@ impl From<bool> for NbtTag {
 }
 
 impl Display for NbtTag {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         match self {
             Self::End => Ok(()),
             Self::Byte(x) => write!(f, "{x}b"),
@@ -301,7 +301,7 @@ impl Display for NbtTag {
 
 fn write_listlike<T: Display, I: IntoIterator<Item = T>>
     (f: &mut Formatter<'_>, prefix: &'static str, affix: &'static str, arr: I)
-    -> std::fmt::Result {
+    -> fmt::Result {
     write!(f, "[{prefix}")?;
     join_formatted(
         f, ", ",

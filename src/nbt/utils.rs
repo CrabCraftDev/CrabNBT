@@ -48,10 +48,10 @@ where
 /// like [T]::join, but allowing for formatting
 /// Runs a sequence of formatting functions, interspersed with instances of `separator`
 pub(crate) fn join_formatted<Separator, I, F>
-    (f: &mut Formatter<'_>, separator: Separator, iterator: I) -> std::fmt::Result 
+    (f: &mut Formatter<'_>, separator: Separator, iterator: I) -> fmt::Result 
     where Separator: Clone + Display, 
             I: IntoIterator<Item = F>, 
-            F: FnOnce(&mut Formatter<'_>) -> std::fmt::Result,
+            F: FnOnce(&mut Formatter<'_>) -> fmt::Result,
 {
     let mut peekable = iterator.into_iter().peekable();
     while let Some(function) = peekable.next() {

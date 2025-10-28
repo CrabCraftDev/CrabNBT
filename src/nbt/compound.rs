@@ -4,7 +4,7 @@ use bytes::{Buf, BufMut, Bytes, BytesMut};
 use crab_nbt::nbt::tag::NbtTag;
 use crab_nbt::nbt::utils::{get_nbt_string, END_ID};
 use derive_more::Into;
-use std::fmt::{Debug, Display, Formatter};
+use std::fmt::{self, Debug, Display, Formatter};
 use std::io::{Cursor, Write};
 use std::vec::IntoIter;
 
@@ -167,7 +167,7 @@ impl AsRef<NbtCompound> for NbtCompound {
 }
 
 impl Display for NbtCompound {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         write!(f, "{{")?;
         
         let iterator = (&self.child_tags).iter().peekable()
