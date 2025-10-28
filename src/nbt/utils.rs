@@ -63,12 +63,10 @@ pub(crate) fn join_formatted<Separator, I, F>
     Ok(())
 }
 
-pub(crate) fn escape_name(s: &String) -> String {
-    // This is not quite perfect, given that it always iterates s twice
-    // I would wish for a better solution, but it would be quite complicated
+pub(crate) fn escape_name(s: &str) -> String {
     let may_be_unquoted = !s.is_empty() && s.chars()
         .all(|c| c.is_alphanumeric() || c == '.' || c == '_' || c == '+' || c == '-' );
-    if may_be_unquoted { s.clone() } 
+    if may_be_unquoted { s.to_owned() } 
     else { escape_string_value(s) }
 }
 
