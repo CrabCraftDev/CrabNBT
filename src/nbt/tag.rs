@@ -3,7 +3,7 @@ use crab_nbt::error::Error;
 use crab_nbt::nbt::compound::NbtCompound;
 use crab_nbt::nbt::utils::*;
 use derive_more::From;
-use std::fmt::{Display, Formatter};
+use std::fmt::{self, Display, Formatter};
 use std::io::Cursor;
 
 /// Enum representing the different types of NBT tags.
