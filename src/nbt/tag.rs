@@ -286,26 +286,28 @@ impl Display for NbtTag {
             // using debug here matches Minecraft on whole numbers (3.0 instead of 3)
             Self::Float(x) => write!(f, "{x:?}f"),
             Self::Double(x) => write!(f, "{x:?}d"),
-            Self::ByteArray(arr) => write_listlike(
-                f, "B; ", "B",
-                arr.iter().map(|b| *b as i8)
-            ),
+            Self::ByteArray(arr) => write_listlike(f, "B; ", "B", arr.iter().map(|b| *b as i8)),
             Self::String(s) => write!(f, "{}", escape_string_value(s)),
             Self::List(list) => write_listlike(f, "", "", list),
             Self::Compound(compound) => write!(f, "{compound}"),
             Self::IntArray(arr) => write_listlike(f, "I; ", "", arr),
-            Self::LongArray(arr) => write_listlike(f, "L; ", "L", arr)
+            Self::LongArray(arr) => write_listlike(f, "L; ", "L", arr),
         }
     }
 }
 
-fn write_listlike<T: Display, I: IntoIterator<Item = T>>
-    (f: &mut Formatter<'_>, prefix: &'static str, affix: &'static str, arr: I)
-    -> fmt::Result {
+fn write_listlike<T: Display, I: IntoIterator<Item = T>>(
+    f: &mut Formatter<'_>,
+    prefix: &'static str,
+    affix: &'static str,
+    arr: I,
+) -> fmt::Result {
     write!(f, "[{prefix}")?;
     join_formatted(
-        f, ", ",
-        arr.into_iter().map(|x| move |f: &mut Formatter<'_>| write!(f, "{x}{affix}"))
+        f,
+        ", ",
+        arr.into_iter()
+            .map(|x| move |f: &mut Formatter<'_>| write!(f, "{x}{affix}")),
     )?;
     write!(f, "]")
 }

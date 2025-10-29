@@ -47,11 +47,15 @@ where
 
 /// like [T]::join, but allowing for formatting
 /// Runs a sequence of formatting functions, interspersed with instances of `separator`
-pub(crate) fn join_formatted<Separator, I, F>
-    (f: &mut Formatter<'_>, separator: Separator, iterator: I) -> fmt::Result 
-    where Separator: Clone + Display, 
-            I: IntoIterator<Item = F>, 
-            F: FnOnce(&mut Formatter<'_>) -> fmt::Result,
+pub(crate) fn join_formatted<Separator, I, F>(
+    f: &mut Formatter<'_>,
+    separator: Separator,
+    iterator: I,
+) -> fmt::Result
+where
+    Separator: Clone + Display,
+    I: IntoIterator<Item = F>,
+    F: FnOnce(&mut Formatter<'_>) -> fmt::Result,
 {
     let mut peekable = iterator.into_iter().peekable();
     while let Some(function) = peekable.next() {
@@ -64,16 +68,20 @@ pub(crate) fn join_formatted<Separator, I, F>
 }
 
 pub(crate) fn escape_name(s: &str) -> String {
-    let may_be_unquoted = !s.is_empty() && s.chars()
-        .all(|c| c.is_alphanumeric() || c == '.' || c == '_' || c == '+' || c == '-' );
-    if may_be_unquoted { s.to_owned() } 
-    else { escape_string_value(s) }
+    let may_be_unquoted = !s.is_empty()
+        && s.chars()
+            .all(|c| c.is_alphanumeric() || c == '.' || c == '_' || c == '+' || c == '-');
+    if may_be_unquoted {
+        s.to_owned()
+    } else {
+        escape_string_value(s)
+    }
 }
 
 pub(crate) fn escape_string_value(s: &str) -> String {
     let mut output = String::with_capacity(s.len() + 2); // +2 because ""
     let mut chosen_quote = None;
-    output.push('"');  // placeholder character until we know what quote to use
+    output.push('"'); // placeholder character until we know what quote to use
     for c in s.chars() {
         if c == '\\' {
             output.push('\\');
@@ -115,7 +123,10 @@ mod tests {
 
     #[test]
     fn escape_name_single_quotes() {
-        assert_eq!(escape_name("ineed\"special\"handling"), "'ineed\"special\"handling'");
+        assert_eq!(
+            escape_name("ineed\"special\"handling"),
+            "'ineed\"special\"handling'"
+        );
         assert_eq!(escape_name("double\"single'"), "'double\"single\\''")
     }
 }

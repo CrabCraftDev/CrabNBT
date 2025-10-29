@@ -169,13 +169,10 @@ impl AsRef<NbtCompound> for NbtCompound {
 impl Display for NbtCompound {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         write!(f, "{{")?;
-        
-        let iterator = (&self.child_tags).iter().peekable()
-            .map(|(name, tag)| {
-                move |f: &mut Formatter<'_>| {
-                    write!(f, "{}: {tag}", escape_name(name))
-                }
-            });
+
+        let iterator = self.child_tags.iter().map(|(name, tag)| {
+            move |f: &mut Formatter<'_>| write!(f, "{}: {tag}", escape_name(name))
+        });
         join_formatted(f, ", ", iterator)?;
 
         write!(f, "}}")

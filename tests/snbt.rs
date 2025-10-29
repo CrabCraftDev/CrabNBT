@@ -1,6 +1,5 @@
 use bytes::Bytes;
-use crab_nbt::{NbtTag, nbt};
-
+use crab_nbt::{nbt, NbtTag};
 
 #[test]
 fn compound_with_basic_numbers() {
