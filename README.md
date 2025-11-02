@@ -53,10 +53,9 @@ let normal_bytes = nbt.write();
 ## Deserializing
 
 ```rust
-use bytes::Bytes;
 use crab_nbt::{nbt, Nbt, NbtCompound};
 
-fn example(bytes: &mut Bytes) {
+fn example(bytes: &[u8]) {
     let nbt = Nbt::read(bytes).unwrap();
     let egg_name = nbt
         .get_compound("nbt_inner")

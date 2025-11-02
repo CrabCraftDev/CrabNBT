@@ -21,6 +21,10 @@ pub enum Error {
     UnsupportedType(String),
     #[error(transparent)]
     Io(#[from] io::Error),
+    #[error("Not enough bytes remaining in buffer to read value (requested {requested} but only {available} available)")]
+    NotEnoughBytes { requested: usize, available: usize },
+    #[error("Cannot skip {amount} bytes, only {available} bytes are remaining in the buffer")]
+    InvalidSkip { amount: usize, available: usize },
 }
 
 #[cfg(feature = "serde")]

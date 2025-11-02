@@ -6,11 +6,10 @@
 /// Basic usage:
 ///
 /// ```
-/// use bytes::Bytes;
 /// use crab_nbt::nbt;
 ///
 /// let key = "key".to_owned();
-/// let value = Bytes::from_iter([0, 1, 2, 3]);
+/// let value = Vec::from_iter([0, 1, 2, 3]);
 /// let nbt = nbt!("root nbt_inner name", {
 ///     "float": 1.0,
 ///     key: "value",
@@ -81,7 +80,7 @@ macro_rules! nbt_inner {
     };
     ([B; $($lit:literal),* $(,)?]) => { nbt_inner!([Byte; $($lit),*]) };
     ([Byte; $($lit:literal),* $(,)?]) => {
-        $crate::NbtTag::ByteArray(::bytes::Bytes::from_iter([$($lit),*]))
+        $crate::NbtTag::ByteArray(::std::vec::Vec::from_iter([$($lit),*]))
     };
     ([$($lit:literal),* $(,)?]) => {
         $crate::NbtTag::List(::std::vec![$($lit.into()),*])

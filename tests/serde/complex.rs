@@ -1,5 +1,4 @@
 use crate::{serde::test_data_definitions::ComplexPlayer, util::decompress_data};
-use bytes::BytesMut;
 use crab_nbt::serde::{
     de::{from_bytes, from_bytes_unnamed},
     ser::{to_bytes, to_bytes_unnamed},
@@ -7,9 +6,7 @@ use crab_nbt::serde::{
 
 #[test]
 fn test_roundtrip_complex() {
-    let bytes = BytesMut::from_iter(decompress_data(
-        include_bytes!("../data/complex_player.dat") as &[u8],
-    ));
+    let bytes = decompress_data(include_bytes!("../data/complex_player.dat") as &[u8]);
     let deserialized = from_bytes::<ComplexPlayer>(&mut bytes.clone()).unwrap();
     let bytes2 = to_bytes(&deserialized, "".to_owned()).unwrap();
     let deserialized2 = from_bytes::<ComplexPlayer>(&mut bytes2.clone()).unwrap();
@@ -20,9 +17,7 @@ fn test_roundtrip_complex() {
 
 #[test]
 fn test_roundtrip_complex_unnamed() {
-    let bytes = BytesMut::from_iter(decompress_data(
-        include_bytes!("../data/complex_player.dat") as &[u8],
-    ));
+    let bytes = decompress_data(include_bytes!("../data/complex_player.dat") as &[u8]);
     let deserialized = from_bytes::<ComplexPlayer>(&mut bytes.clone()).unwrap();
     let bytes2 = to_bytes_unnamed(&deserialized).unwrap();
     let deserialized2 = from_bytes_unnamed::<ComplexPlayer>(&mut bytes2.clone()).unwrap();

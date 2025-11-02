@@ -12,12 +12,12 @@ fn benchmark_file(criterion: &mut Criterion, file_name: &str, nbt: &Nbt, bytes_l
     group.throughput(Throughput::Bytes(bytes_len as u64));
 
     group.bench_function(file_name, |b| {
-        b.iter_batched_ref(|| &nbt, |nbt| nbt.write(), BatchSize::SmallInput)
+        b.iter_batched_ref(|| nbt, |nbt| nbt.write(), BatchSize::SmallInput)
     });
 }
 
 #[cfg(feature = "serde")]
-fn benchmark_file_serde<T>(criterion: &mut Criterion, file_name: &str, mut bytes: bytes::Bytes)
+fn benchmark_file_serde<T>(criterion: &mut Criterion, file_name: &str, bytes: &[u8])
 where
     T: serde::de::DeserializeOwned + serde::ser::Serialize,
 {
@@ -25,7 +25,7 @@ where
     group.throughput(Throughput::Bytes(bytes.len() as u64));
 
     let deserialized_struct =
-        crab_nbt::serde::de::from_bytes::<T>(&mut bytes).expect("Failed to parse NBT");
+        crab_nbt::serde::de::from_bytes::<T>(&bytes).expect("Failed to parse NBT");
 
     group.bench_function(file_name, |b| {
         b.iter_batched_ref(
@@ -41,20 +41,20 @@ where
 
 fn benchmark(criterion: &mut Criterion) {
     let bytes = utils::read_file("tests/data/complex_player.dat", true);
-    let nbt = Nbt::read(&mut bytes.clone()).expect("Failed to parse NBT");
+    let nbt = Nbt::read(&bytes).expect("Failed to parse NBT");
     benchmark_file(criterion, "complex_player", &nbt, bytes.len());
     #[cfg(feature = "serde")]
     benchmark_file_serde::<test_data_definitions::ComplexPlayer>(
         criterion,
         "complex_player",
-        bytes,
+        &bytes,
     );
 
     let bytes = utils::read_file("tests/data/chunk.nbt", false);
-    let nbt = Nbt::read(&mut bytes.clone()).expect("Failed to parse NBT");
+    let nbt = Nbt::read(&bytes).expect("Failed to parse NBT");
     benchmark_file(criterion, "chunk", &nbt, bytes.len());
     #[cfg(feature = "serde")]
-    benchmark_file_serde::<test_data_definitions::Chunk>(criterion, "chunk", bytes);
+    benchmark_file_serde::<test_data_definitions::Chunk>(criterion, "chunk", &bytes);
 }
 
 criterion_group!(benches, benchmark);

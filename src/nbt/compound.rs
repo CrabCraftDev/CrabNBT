@@ -1,5 +1,4 @@
-use crate::{error::Error, Nbt};
-use bytes::{Buf, BufMut, Bytes, BytesMut};
+use crate::{error::Error, nbt::slice_cursor::BinarySliceCursor, Nbt};
 use crab_nbt::nbt::tag::NbtTag;
 use crab_nbt::nbt::utils::{get_nbt_string, END_ID};
 use derive_more::Into;
@@ -18,18 +17,30 @@ impl NbtCompound {
         }
     }
 
-    pub fn deserialize_content(bytes: &mut impl Buf) -> Result<NbtCompound, Error> {
+    pub fn deserialize_content(bytes: &[u8]) -> Result<NbtCompound, Error> {
+        Self::deserialize_content_internal(&mut BinarySliceCursor::new(bytes))
+    }
+
+    pub fn deserialize_content_from_cursor(
+        cursor: &mut Cursor<&[u8]>,
+    ) -> Result<NbtCompound, Error> {
+        BinarySliceCursor::wrap_io_cursor(cursor, Self::deserialize_content_internal).flatten()
+    }
+
+    pub(crate) fn deserialize_content_internal(
+        bytes: &mut BinarySliceCursor,
+    ) -> Result<NbtCompound, Error> {
         let mut compound = NbtCompound::new();
 
         while bytes.has_remaining() {
-            let tag_id = bytes.get_u8();
+            let tag_id = bytes.read_u8()?;
             if tag_id == END_ID {
                 break;
             }
 
-            let name = get_nbt_string(bytes)?;
+            let name = get_nbt_string(bytes)?.to_string();
 
-            if let Ok(tag) = NbtTag::deserialize_data(bytes, tag_id) {
+            if let Ok(tag) = NbtTag::deserialize_data_internal(bytes, tag_id) {
                 compound.put(name, tag);
             } else {
                 break;
@@ -39,21 +50,15 @@ impl NbtCompound {
         Ok(compound)
     }
 
-    pub fn deserialize_content_from_cursor(
-        cursor: &mut Cursor<&[u8]>,
-    ) -> Result<NbtCompound, Error> {
-        Self::deserialize_content(cursor)
-    }
-
-    pub fn serialize_content(&self) -> Bytes {
-        let mut bytes = BytesMut::new();
+    pub fn serialize_content(&self) -> Vec<u8> {
+        let mut bytes = Vec::new();
         for (name, tag) in &self.child_tags {
-            bytes.put_u8(tag.get_type_id());
-            bytes.put(NbtTag::String(name.clone()).serialize_data());
-            bytes.put(tag.serialize_data());
+            bytes.push(tag.get_type_id());
+            bytes.extend(NbtTag::String(name.clone()).serialize_data());
+            bytes.extend(tag.serialize_data());
         }
-        bytes.put_u8(END_ID);
-        bytes.freeze()
+        bytes.push(END_ID);
+        bytes
     }
 
     pub fn serialize_content_to_writer<W: Write>(&self, mut writer: W) -> Result<(), Error> {
