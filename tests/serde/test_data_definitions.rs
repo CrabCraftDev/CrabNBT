@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 use crab_nbt::serde::arrays::BytesArray;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
