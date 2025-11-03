@@ -1,8 +1,10 @@
+use crate::nbt::utils::{escape_name, join_formatted};
 use crate::{error::Error, Nbt};
 use bytes::{Buf, BufMut, Bytes, BytesMut};
 use crab_nbt::nbt::tag::NbtTag;
 use crab_nbt::nbt::utils::{get_nbt_string, END_ID};
 use derive_more::Into;
+use std::fmt::{self, Debug, Display, Formatter};
 use std::io::{Cursor, Write};
 use std::vec::IntoIter;
 
@@ -161,5 +163,18 @@ impl Extend<(String, NbtTag)> for NbtCompound {
 impl AsRef<NbtCompound> for NbtCompound {
     fn as_ref(&self) -> &NbtCompound {
         self
+    }
+}
+
+impl Display for NbtCompound {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        write!(f, "{{")?;
+
+        let iterator = self.child_tags.iter().map(|(name, tag)| {
+            move |f: &mut Formatter<'_>| write!(f, "{}: {tag}", escape_name(name))
+        });
+        join_formatted(f, ", ", iterator)?;
+
+        write!(f, "}}")
     }
 }

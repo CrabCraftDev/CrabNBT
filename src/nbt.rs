@@ -3,6 +3,7 @@ use bytes::{Buf, BufMut, Bytes, BytesMut};
 use crab_nbt::nbt::compound::NbtCompound;
 use crab_nbt::nbt::tag::NbtTag;
 use crab_nbt::nbt::utils::*;
+use std::fmt::{self, Display, Formatter};
 use std::io::{Cursor, Write};
 use std::ops::Deref;
 
@@ -117,5 +118,11 @@ where
 impl AsMut<NbtCompound> for Nbt {
     fn as_mut(&mut self) -> &mut NbtCompound {
         &mut self.root_tag
+    }
+}
+
+impl Display for Nbt {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        write!(f, "{{\"{}\": {}}}", self.name, self.root_tag)
     }
 }

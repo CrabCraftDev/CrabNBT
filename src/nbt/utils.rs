@@ -1,3 +1,5 @@
+use std::fmt::{self, Display, Formatter};
+
 use crate::error::Error;
 use bytes::Buf;
 use simd_cesu8::decode;
@@ -41,4 +43,90 @@ where
             from_be(arr)
         })
         .collect()
+}
+
+/// like [T]::join, but allowing for formatting
+/// Runs a sequence of formatting functions, interspersed with instances of `separator`
+pub(crate) fn join_formatted<Separator, I, F>(
+    f: &mut Formatter<'_>,
+    separator: Separator,
+    iterator: I,
+) -> fmt::Result
+where
+    Separator: Clone + Display,
+    I: IntoIterator<Item = F>,
+    F: FnOnce(&mut Formatter<'_>) -> fmt::Result,
+{
+    let mut peekable = iterator.into_iter().peekable();
+    while let Some(function) = peekable.next() {
+        function(f)?;
+        if peekable.peek().is_some() {
+            write!(f, "{}", separator)?;
+        }
+    }
+    Ok(())
+}
+
+pub(crate) fn escape_name(s: &str) -> String {
+    let may_be_unquoted = !s.is_empty()
+        && s.chars()
+            .all(|c| c.is_alphanumeric() || c == '.' || c == '_' || c == '+' || c == '-');
+    if may_be_unquoted {
+        s.to_owned()
+    } else {
+        escape_string_value(s)
+    }
+}
+
+pub(crate) fn escape_string_value(s: &str) -> String {
+    let mut output = String::with_capacity(s.len() + 2); // +2 because ""
+    let mut chosen_quote = None;
+    output.push('"'); // placeholder character until we know what quote to use
+    for c in s.chars() {
+        if c == '\\' {
+            output.push('\\');
+        } else if c == '"' || c == '\'' {
+            if chosen_quote.is_none() {
+                chosen_quote = Some(if c == '"' { '\'' } else { '"' });
+            }
+            if chosen_quote.map(|q| q == c).unwrap_or(false) {
+                output.push('\\');
+            }
+        }
+        output.push(c);
+    }
+
+    let escape_char = chosen_quote.unwrap_or('\"');
+    output.replace_range(0..1, &escape_char.to_string());
+    output.push(escape_char);
+    output
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn escape_name_no_quotes() {
+        assert_eq!(escape_name("hello1234"), "hello1234");
+        assert_eq!(escape_name("1234_hello__..WORLD"), "1234_hello__..WORLD");
+        assert_eq!(escape_name("...boo"), "...boo");
+    }
+
+    #[test]
+    fn escape_name_normal_quotes() {
+        assert_eq!(escape_name("minecraft:damage"), "\"minecraft:damage\"");
+        assert_eq!(escape_name("i haveaspace"), "\"i haveaspace\"");
+        assert_eq!(escape_name("i have many spaces"), "\"i have many spaces\"");
+        assert_eq!(escape_name("single'double\""), "\"single'double\\\"\"");
+    }
+
+    #[test]
+    fn escape_name_single_quotes() {
+        assert_eq!(
+            escape_name("ineed\"special\"handling"),
+            "'ineed\"special\"handling'"
+        );
+        assert_eq!(escape_name("double\"single'"), "'double\"single\\''")
+    }
 }
