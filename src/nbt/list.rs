@@ -86,6 +86,13 @@ impl NbtList {
             NbtList::Heterogeneous(v) => Some(v),
         }
     }
+
+    pub fn element_type_id(&self) -> u8 {
+        match self {
+            NbtList::Homogeneous((ty, _)) => *ty,
+            NbtList::Heterogeneous(_) => crate::nbt::utils::COMPOUND_ID,
+        }
+    }
 }
 
 impl FromIterator<NbtTag> for NbtList {

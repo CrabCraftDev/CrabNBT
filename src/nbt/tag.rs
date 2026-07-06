@@ -62,14 +62,7 @@ impl NbtTag {
                 bytes.put_slice(&java_string);
             }
             NbtTag::List(list) => {
-                match list {
-                    NbtList::Homogeneous((ty, _)) => {
-                        bytes.put_u8(*ty);
-                    }
-                    NbtList::Heterogeneous(_) => {
-                        bytes.put_u8(COMPOUND_ID);
-                    }
-                }
+                bytes.put_u8(list.element_type_id());
                 bytes.put_i32(list.len() as i32);
                 match list {
                     NbtList::Homogeneous((_, tags)) => {
