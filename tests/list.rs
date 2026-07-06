@@ -13,7 +13,9 @@ fn list_types() {
         .clone()
         .push("four")
         .push(vec![5])
-        .push(NbtCompound::from_iter([("six".into(), 7.into())]));
+        .push(NbtCompound {
+            child_tags: vec![("six".into(), 7.into())],
+        });
 
     assert_eq!(
         heterogeneous,
