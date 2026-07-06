@@ -108,7 +108,7 @@ impl<'de> Deserialize<'de> for NbtTag {
             {
                 let mut items = NbtList::new();
                 while let Some(tag) = seq.next_element::<NbtTag>()? {
-                    items = items.push(tag);
+                    items.push(tag);
                 }
                 Ok(NbtTag::List(items))
             }

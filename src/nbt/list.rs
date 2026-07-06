@@ -1,9 +1,9 @@
 use crate::{NbtCompound, NbtTag};
 
 #[derive(Clone, Debug, PartialEq, PartialOrd)]
-pub enum NbtList {
-    Homogeneous(Vec<NbtTag>),
-    Heterogeneous(Vec<NbtTag>),
+pub struct NbtList {
+    inner: Vec<NbtTag>,
+    homogeneous: bool,
 }
 
 impl Default for NbtList {
@@ -14,104 +14,103 @@ impl Default for NbtList {
 
 impl NbtList {
     pub fn new() -> NbtList {
-        Self::Homogeneous(Vec::new())
+        Self {
+            inner: Vec::new(),
+            homogeneous: true,
+        }
     }
 
     pub fn with_capacity(initial_capacity: usize) -> NbtList {
-        Self::Homogeneous(Vec::with_capacity(initial_capacity))
+        Self {
+            inner: Vec::with_capacity(initial_capacity),
+            homogeneous: true,
+        }
+    }
+
+    pub fn is_homogeneous(&self) -> bool {
+        self.homogeneous
+    }
+
+    pub fn is_heterogeneous(&self) -> bool {
+        !self.homogeneous
     }
 
     pub fn get(&self, index: usize) -> Option<&NbtTag> {
-        match self {
-            NbtList::Homogeneous(v) => v.get(index),
-            NbtList::Heterogeneous(v) => {
-                let NbtTag::Compound(compound) = &v.get(index)? else {
-                    unreachable!()
-                };
+        if self.homogeneous {
+            return self.inner.get(index);
+        }
 
-                if compound.child_tags.len() == 1 {
-                    let child = &compound.child_tags[0];
-                    if child.0.is_empty() {
-                        return Some(&child.1);
-                    }
-                }
+        let NbtTag::Compound(compound) = &self.inner.get(index)? else {
+            unreachable!()
+        };
 
-                Some(&v[index])
+        if compound.child_tags.len() == 1 {
+            let child = &compound.child_tags[0];
+            if child.0.is_empty() {
+                return Some(&child.1);
             }
         }
+
+        Some(&self.inner[index])
     }
 
     pub fn get_mut(&mut self, index: usize) -> Option<&mut NbtTag> {
-        match self {
-            NbtList::Homogeneous(v) => v.get_mut(index),
-            NbtList::Heterogeneous(ref mut v) => {
-                use polonius_the_crab::prelude::*;
+        use polonius_the_crab::prelude::*;
 
-                let mut tag = v.get_mut(index)?;
-                polonius!(|tag| -> Option<&'polonius mut NbtTag> {
-                    let NbtTag::Compound(compound) = tag else {
-                        unreachable!()
-                    };
-
-                    if compound.child_tags.len() == 1 {
-                        let child = &mut compound.child_tags[0];
-                        if child.0.is_empty() {
-                            polonius_return!(Some(&mut child.1))
-                        }
-                    }
-                });
-
-                Some(tag)
-            }
+        if self.homogeneous {
+            return self.inner.get_mut(index);
         }
+
+        let mut tag = self.inner.get_mut(index)?;
+        polonius!(|tag| -> Option<&'polonius mut NbtTag> {
+            let NbtTag::Compound(compound) = tag else {
+                unreachable!()
+            };
+
+            if compound.child_tags.len() == 1 {
+                let child = &mut compound.child_tags[0];
+                if child.0.is_empty() {
+                    polonius_return!(Some(&mut child.1))
+                }
+            }
+        });
+
+        Some(tag)
     }
 
-    pub fn push(mut self, element: impl Into<NbtTag>) -> Self {
+    pub fn push(&mut self, element: impl Into<NbtTag>) {
         let element: NbtTag = element.into();
         let current_type_id = self.element_type_id();
 
-        match self {
-            NbtList::Homogeneous(ref mut v) => {
-                let new_type_id = element.get_type_id();
-                if current_type_id == new_type_id || current_type_id == NbtTag::End.get_type_id() {
-                    v.push(element);
-                    NbtList::Homogeneous(std::mem::take(v))
-                } else {
-                    let new = self.into_heterogeneous();
-                    new.push(element)
-                }
+        if self.homogeneous {
+            let new_type_id = element.get_type_id();
+            if current_type_id != new_type_id && current_type_id != NbtTag::End.get_type_id() {
+                self.make_heterogeneous();
             }
-            NbtList::Heterogeneous(mut v) => {
-                match element {
-                    NbtTag::Compound(_) => {
-                        v.push(element);
-                    }
-                    _ => v.push(NbtCompound::wrap(element).into()),
-                }
-                NbtList::Heterogeneous(v)
-            }
+            self.inner.push(element);
+            return;
+        }
+
+        match element {
+            NbtTag::Compound(_) => self.inner.push(element),
+            _ => self.inner.push(NbtCompound::wrap(element).into()),
         }
     }
 
-    pub fn into_heterogeneous(self) -> Self {
-        match self {
-            NbtList::Homogeneous(mut v) => {
-                for e in &mut v {
-                    if !matches!(e, NbtTag::Compound(_)) {
-                        *e = NbtCompound::wrap(std::mem::replace(e, NbtTag::End)).into();
-                    }
-                }
-                NbtList::Heterogeneous(v)
+    pub fn make_heterogeneous(&mut self) {
+        if self.is_heterogeneous() {
+            return;
+        }
+
+        for e in &mut self.inner {
+            if !matches!(e, NbtTag::Compound(_)) {
+                *e = NbtCompound::wrap(std::mem::replace(e, NbtTag::End)).into();
             }
-            NbtList::Heterogeneous(_) => self,
         }
     }
 
     pub fn len(&self) -> usize {
-        match self {
-            NbtList::Homogeneous(v) => v.len(),
-            NbtList::Heterogeneous(v) => v.len(),
-        }
+        self.inner.len()
     }
 
     pub fn is_empty(&self) -> bool {
@@ -119,15 +118,12 @@ impl NbtList {
     }
 
     pub fn element_type_id(&self) -> u8 {
-        match self {
-            NbtList::Homogeneous(v) => {
-                if v.is_empty() {
-                    crate::nbt::utils::END_ID
-                } else {
-                    v[0].get_type_id()
-                }
-            }
-            NbtList::Heterogeneous(_) => crate::nbt::utils::COMPOUND_ID,
+        if self.is_heterogeneous() {
+            crate::nbt::utils::COMPOUND_ID
+        } else if self.inner.is_empty() {
+            crate::nbt::utils::END_ID
+        } else {
+            self.inner[0].get_type_id()
         }
     }
 
@@ -141,7 +137,7 @@ impl FromIterator<NbtTag> for NbtList {
         let iter = iter.into_iter();
         let mut list = NbtList::with_capacity(iter.size_hint().0);
         for element in iter {
-            list = list.push(element);
+            list.push(element);
         }
 
         list
@@ -164,11 +160,9 @@ impl<'a> Iterator for Iter<'a> {
     type Item = &'a NbtTag;
 
     fn next(&mut self) -> Option<Self::Item> {
-        let element = self.list.get(self.idx);
-        if element.is_some() {
-            self.idx += 1;
-        }
-        element
+        let element = self.list.get(self.idx)?;
+        self.idx += 1;
+        Some(element)
     }
 }
 
@@ -176,31 +170,9 @@ impl Iterator for IntoIter {
     type Item = NbtTag;
 
     fn next(&mut self) -> Option<Self::Item> {
-        if self.list.len() > self.idx {
-            let element = match self.list {
-                NbtList::Homogeneous(ref mut v) => std::mem::replace(&mut v[self.idx], NbtTag::End),
-                NbtList::Heterogeneous(ref mut v) => {
-                    let NbtTag::Compound(mut compound) =
-                        std::mem::replace(&mut v[self.idx], NbtTag::End)
-                    else {
-                        unreachable!()
-                    };
-
-                    if compound.child_tags.len() == 1 {
-                        let child = &mut compound.child_tags[0];
-                        if child.0.is_empty() {
-                            self.idx += 1;
-                            return Some(std::mem::replace(&mut child.1, NbtTag::End));
-                        }
-                    }
-                    compound.into()
-                }
-            };
-            self.idx += 1;
-            Some(element)
-        } else {
-            None
-        }
+        let tag = self.list.get_mut(self.idx)?;
+        self.idx += 1;
+        Some(std::mem::replace(tag, NbtTag::End))
     }
 }
 

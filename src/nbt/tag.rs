@@ -135,7 +135,7 @@ impl NbtTag {
                 let mut list = NbtList::with_capacity(len as usize);
                 for _ in 0..len {
                     let tag = NbtTag::deserialize_data(bytes, tag_type_id)?;
-                    list = list.push(tag);
+                    list.push(tag);
                 }
                 Ok(NbtTag::List(list))
             }
