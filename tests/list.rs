@@ -25,9 +25,9 @@ fn list_types() {
             NbtCompound::wrap(3),
             NbtCompound::wrap("four"),
             NbtCompound::wrap(vec![5]),
-            NbtCompound::wrap(NbtCompound {
+            NbtCompound {
                 child_tags: vec![("six".into(), 7.into())]
-            })
+            }
         ])
     );
 }

@@ -39,9 +39,13 @@ impl NbtList {
                 }
             }
             NbtList::Heterogeneous(mut v) => {
-                v.push(NbtCompound {
-                    child_tags: vec![("".to_string(), element)],
-                });
+                if let NbtTag::Compound(compound) = element {
+                    v.push(compound);
+                } else {
+                    v.push(NbtCompound {
+                        child_tags: vec![("".to_string(), element)],
+                    });
+                }
                 NbtList::Heterogeneous(v)
             }
         }
