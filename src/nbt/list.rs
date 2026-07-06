@@ -21,6 +21,51 @@ impl NbtList {
         Self::Homogeneous(Vec::with_capacity(initial_capacity))
     }
 
+    pub fn get(&self, index: usize) -> Option<&NbtTag> {
+        match self {
+            NbtList::Homogeneous(v) => v.get(index),
+            NbtList::Heterogeneous(v) => {
+                let NbtTag::Compound(compound) = &v.get(index)? else {
+                    unreachable!()
+                };
+
+                if compound.child_tags.len() == 1 {
+                    let child = &compound.child_tags[0];
+                    if child.0.is_empty() {
+                        return Some(&child.1);
+                    }
+                }
+
+                Some(&v[index])
+            }
+        }
+    }
+
+    pub fn get_mut(&mut self, index: usize) -> Option<&mut NbtTag> {
+        match self {
+            NbtList::Homogeneous(v) => v.get_mut(index),
+            NbtList::Heterogeneous(ref mut v) => {
+                use polonius_the_crab::prelude::*;
+
+                let mut tag = v.get_mut(index)?;
+                polonius!(|tag| -> Option<&'polonius mut NbtTag> {
+                    let NbtTag::Compound(compound) = tag else {
+                        unreachable!()
+                    };
+
+                    if compound.child_tags.len() == 1 {
+                        let child = &mut compound.child_tags[0];
+                        if child.0.is_empty() {
+                            polonius_return!(Some(&mut child.1))
+                        }
+                    }
+                });
+
+                Some(tag)
+            }
+        }
+    }
+
     pub fn push(mut self, element: impl Into<NbtTag>) -> Self {
         let element: NbtTag = element.into();
         let current_type_id = self.element_type_id();
@@ -108,6 +153,8 @@ pub struct Iter<'a> {
     idx: usize,
 }
 
+// TODO: IterMut
+
 pub struct IntoIter {
     list: NbtList,
     idx: usize,
@@ -117,30 +164,11 @@ impl<'a> Iterator for Iter<'a> {
     type Item = &'a NbtTag;
 
     fn next(&mut self) -> Option<Self::Item> {
-        if self.list.len() > self.idx {
-            let element = match &self.list {
-                NbtList::Homogeneous(v) => &v[self.idx],
-                NbtList::Heterogeneous(v) => {
-                    let NbtTag::Compound(compound) = &v[self.idx] else {
-                        unreachable!()
-                    };
-
-                    if compound.child_tags.len() == 1 {
-                        let child = &compound.child_tags[0];
-                        if child.0.is_empty() {
-                            self.idx += 1;
-                            return Some(&child.1);
-                        }
-                    }
-
-                    &v[self.idx]
-                }
-            };
+        let element = self.list.get(self.idx);
+        if element.is_some() {
             self.idx += 1;
-            Some(element)
-        } else {
-            None
         }
+        element
     }
 }
 
