@@ -137,7 +137,7 @@ impl<'a> Iterator for Iter<'a> {
                 }
             };
             self.idx += 1;
-            Some(&element)
+            Some(element)
         } else {
             None
         }
