@@ -64,17 +64,8 @@ impl NbtTag {
             NbtTag::List(list) => {
                 bytes.put_u8(list.element_type_id());
                 bytes.put_i32(list.len() as i32);
-                match list {
-                    NbtList::Homogeneous(tags) => {
-                        for nbt_tag in tags {
-                            bytes.put(nbt_tag.serialize_data())
-                        }
-                    }
-                    NbtList::Heterogeneous(compounds) => {
-                        for compound in compounds {
-                            bytes.put(compound.serialize_content())
-                        }
-                    }
+                for tag in list {
+                    bytes.put(tag.serialize_data())
                 }
             }
             NbtTag::Compound(compound) => {
@@ -298,23 +289,11 @@ impl Display for NbtTag {
             Self::Double(x) => write!(f, "{x:?}d"),
             Self::ByteArray(arr) => write_listlike(f, "B; ", "B", arr.iter().map(|b| *b as i8)),
             Self::String(s) => write!(f, "{}", escape_string_value(s)),
-            Self::List(list) => write_nbt_list(f, "", "", list),
+            Self::List(list) => write_listlike(f, "", "", list),
             Self::Compound(compound) => write!(f, "{compound}"),
             Self::IntArray(arr) => write_listlike(f, "I; ", "", arr),
             Self::LongArray(arr) => write_listlike(f, "L; ", "L", arr),
         }
-    }
-}
-
-fn write_nbt_list(
-    f: &mut Formatter<'_>,
-    prefix: &'static str,
-    affix: &'static str,
-    list: &NbtList,
-) -> fmt::Result {
-    match list {
-        NbtList::Homogeneous(tags) => write_listlike(f, prefix, affix, tags),
-        NbtList::Heterogeneous(compounds) => write_listlike(f, prefix, affix, compounds),
     }
 }
 

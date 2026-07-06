@@ -27,17 +27,8 @@ impl Serialize for NbtTag {
             NbtTag::List(list_items) => {
                 use serde::ser::SerializeSeq;
                 let mut seq = serializer.serialize_seq(Some(list_items.len()))?;
-                match list_items {
-                    NbtList::Homogeneous(tags) => {
-                        for tag in tags {
-                            seq.serialize_element(tag)?;
-                        }
-                    }
-                    NbtList::Heterogeneous(compounds) => {
-                        for compound in compounds {
-                            seq.serialize_element(compound)?;
-                        }
-                    }
+                for tag in list_items {
+                    seq.serialize_element(tag)?;
                 }
                 seq.end()
             }

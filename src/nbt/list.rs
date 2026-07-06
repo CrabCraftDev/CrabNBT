@@ -3,7 +3,7 @@ use crate::{NbtCompound, NbtTag};
 #[derive(Clone, Debug, PartialEq, PartialOrd)]
 pub enum NbtList {
     Homogeneous(Vec<NbtTag>),
-    Heterogeneous(Vec<NbtCompound>),
+    Heterogeneous(Vec<NbtTag>),
 }
 
 impl Default for NbtList {
@@ -37,12 +37,11 @@ impl NbtList {
                 }
             }
             NbtList::Heterogeneous(mut v) => {
-                if let NbtTag::Compound(compound) = element {
-                    v.push(compound);
-                } else {
-                    v.push(NbtCompound {
-                        child_tags: vec![("".to_string(), element)],
-                    });
+                match element {
+                    NbtTag::Compound(_) => {
+                        v.push(element);
+                    }
+                    _ => v.push(NbtCompound::wrap(element).into()),
                 }
                 NbtList::Heterogeneous(v)
             }
@@ -51,14 +50,13 @@ impl NbtList {
 
     pub fn into_heterogeneous(self) -> Self {
         match self {
-            NbtList::Homogeneous(a) => {
-                let mut b: Vec<NbtCompound> = Vec::with_capacity(a.capacity());
-                for e in a {
-                    b.push(NbtCompound {
-                        child_tags: vec![("".to_string(), e)],
-                    })
+            NbtList::Homogeneous(mut v) => {
+                for e in &mut v {
+                    if !matches!(e, NbtTag::Compound(_)) {
+                        *e = NbtCompound::wrap(std::mem::replace(e, NbtTag::End)).into();
+                    }
                 }
-                NbtList::Heterogeneous(b)
+                NbtList::Heterogeneous(v)
             }
             NbtList::Heterogeneous(_) => self,
         }
@@ -75,20 +73,6 @@ impl NbtList {
         self.len() == 0
     }
 
-    pub fn as_homogeneous(&self) -> Option<&Vec<NbtTag>> {
-        match self {
-            NbtList::Homogeneous(v) => Some(v),
-            NbtList::Heterogeneous(_) => None,
-        }
-    }
-
-    pub fn as_heterogeneous(&self) -> Option<&Vec<NbtCompound>> {
-        match self {
-            NbtList::Homogeneous(_) => None,
-            NbtList::Heterogeneous(v) => Some(v),
-        }
-    }
-
     pub fn element_type_id(&self) -> u8 {
         match self {
             NbtList::Homogeneous(v) => {
@@ -100,6 +84,10 @@ impl NbtList {
             }
             NbtList::Heterogeneous(_) => crate::nbt::utils::COMPOUND_ID,
         }
+    }
+
+    pub fn iter<'a>(&'a self) -> Iter<'a> {
+        self.into_iter()
     }
 }
 
@@ -115,9 +103,45 @@ impl FromIterator<NbtTag> for NbtList {
     }
 }
 
+pub struct Iter<'a> {
+    list: &'a NbtList,
+    idx: usize,
+}
+
 pub struct IntoIter {
     list: NbtList,
     idx: usize,
+}
+
+impl<'a> Iterator for Iter<'a> {
+    type Item = &'a NbtTag;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.list.len() > self.idx {
+            let element = match &self.list {
+                NbtList::Homogeneous(v) => &v[self.idx],
+                NbtList::Heterogeneous(v) => {
+                    let NbtTag::Compound(compound) = &v[self.idx] else {
+                        unreachable!()
+                    };
+
+                    if compound.child_tags.len() == 1 {
+                        let child = &compound.child_tags[0];
+                        if child.0.is_empty() {
+                            self.idx += 1;
+                            return Some(&child.1);
+                        }
+                    }
+
+                    &v[self.idx]
+                }
+            };
+            self.idx += 1;
+            Some(&element)
+        } else {
+            None
+        }
+    }
 }
 
 impl Iterator for IntoIter {
@@ -128,7 +152,12 @@ impl Iterator for IntoIter {
             let element = match self.list {
                 NbtList::Homogeneous(ref mut v) => std::mem::replace(&mut v[self.idx], NbtTag::End),
                 NbtList::Heterogeneous(ref mut v) => {
-                    let mut compound = std::mem::replace(&mut v[self.idx], NbtCompound::new());
+                    let NbtTag::Compound(mut compound) =
+                        std::mem::replace(&mut v[self.idx], NbtTag::End)
+                    else {
+                        unreachable!()
+                    };
+
                     if compound.child_tags.len() == 1 {
                         let child = &mut compound.child_tags[0];
                         if child.0.is_empty() {
@@ -154,5 +183,15 @@ impl IntoIterator for NbtList {
 
     fn into_iter(self) -> Self::IntoIter {
         IntoIter { list: self, idx: 0 }
+    }
+}
+
+impl<'a> IntoIterator for &'a NbtList {
+    type Item = &'a NbtTag;
+
+    type IntoIter = Iter<'a>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        Iter { list: self, idx: 0 }
     }
 }
