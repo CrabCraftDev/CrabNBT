@@ -65,7 +65,7 @@ impl NbtTag {
                 bytes.put_u8(list.element_type_id());
                 bytes.put_i32(list.len() as i32);
                 match list {
-                    NbtList::Homogeneous((_, tags)) => {
+                    NbtList::Homogeneous(tags) => {
                         for nbt_tag in tags {
                             bytes.put(nbt_tag.serialize_data())
                         }
@@ -313,7 +313,7 @@ fn write_nbt_list(
     list: &NbtList,
 ) -> fmt::Result {
     match list {
-        NbtList::Homogeneous((_, tags)) => write_listlike(f, prefix, affix, tags),
+        NbtList::Homogeneous(tags) => write_listlike(f, prefix, affix, tags),
         NbtList::Heterogeneous(compounds) => write_listlike(f, prefix, affix, compounds),
     }
 }
