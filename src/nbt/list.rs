@@ -99,3 +99,16 @@ impl FromIterator<NbtTag> for NbtList {
         list
     }
 }
+
+impl IntoIterator for NbtList {
+    type Item = NbtTag;
+
+    type IntoIter = Box<dyn Iterator<Item = Self::Item>>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        match self {
+            NbtList::Homogeneous((_, v)) => Box::new(v.into_iter()),
+            NbtList::Heterogeneous(v) => Box::new(v.into_iter().map(NbtTag::Compound)),
+        }
+    }
+}
