@@ -6,30 +6,32 @@ fn list_types() {
     let mut iter = empty.clone().into_iter();
     assert_eq!(iter.next(), None);
 
-    let homogeneous = NbtList::new().push(1).push(2).push(3);
+    let mut homogeneous = NbtList::new();
+    homogeneous.push(1);
+    homogeneous.push(2);
+    homogeneous.push(3);
     let mut iter = homogeneous.iter();
     assert_eq!(iter.next(), Some(&1.into()));
     assert_eq!(iter.next(), Some(&2.into()));
     assert_eq!(iter.next(), Some(&3.into()));
     assert_eq!(iter.next(), None);
 
-    let heterogeneous = homogeneous
-        .clone()
-        .push("four")
-        .push(vec![5])
-        .push(NbtCompound {
-            child_tags: vec![("six".into(), 7.into())],
-        });
-    let mut iter = heterogeneous.iter();
-    assert_eq!(iter.next(), Some(&1.into()));
-    assert_eq!(iter.next(), Some(&2.into()));
-    assert_eq!(iter.next(), Some(&3.into()));
-    assert_eq!(iter.next(), Some(&"four".into()));
-    assert_eq!(iter.next(), Some(&vec![5].into()));
+    let mut heterogeneous = homogeneous.clone();
+    heterogeneous.push("four");
+    heterogeneous.push(vec![5]);
+    heterogeneous.push(NbtCompound {
+        child_tags: vec![("six".into(), 7.into())],
+    });
+    let mut iter = heterogeneous.iter_mut();
+    assert_eq!(iter.next(), Some(&mut 1.into()));
+    assert_eq!(iter.next(), Some(&mut 2.into()));
+    assert_eq!(iter.next(), Some(&mut 3.into()));
+    assert_eq!(iter.next(), Some(&mut "four".into()));
+    assert_eq!(iter.next(), Some(&mut vec![5].into()));
     assert_eq!(
         iter.next(),
         Some(
-            &NbtCompound {
+            &mut NbtCompound {
                 child_tags: vec![("six".into(), 7.into())]
             }
             .into()

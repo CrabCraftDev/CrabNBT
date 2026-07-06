@@ -84,10 +84,10 @@ impl NbtList {
 
         if self.homogeneous {
             let new_type_id = element.get_type_id();
+            self.inner.push(element);
             if current_type_id != new_type_id && current_type_id != NbtTag::End.get_type_id() {
                 self.make_heterogeneous();
             }
-            self.inner.push(element);
             return;
         }
 
@@ -102,6 +102,7 @@ impl NbtList {
             return;
         }
 
+        self.homogeneous = false;
         for e in &mut self.inner {
             if !matches!(e, NbtTag::Compound(_)) {
                 *e = NbtCompound::wrap(std::mem::replace(e, NbtTag::End)).into();
@@ -130,6 +131,10 @@ impl NbtList {
     pub fn iter<'a>(&'a self) -> Iter<'a> {
         self.into_iter()
     }
+
+    pub fn iter_mut<'a>(&'a mut self) -> IterMut<'a> {
+        self.into_iter()
+    }
 }
 
 impl FromIterator<NbtTag> for NbtList {
@@ -149,7 +154,10 @@ pub struct Iter<'a> {
     idx: usize,
 }
 
-// TODO: IterMut
+pub struct IterMut<'a> {
+    iter: std::slice::IterMut<'a, NbtTag>,
+    homogeneous: bool,
+}
 
 pub struct IntoIter {
     list: NbtList,
@@ -162,6 +170,35 @@ impl<'a> Iterator for Iter<'a> {
     fn next(&mut self) -> Option<Self::Item> {
         let element = self.list.get(self.idx)?;
         self.idx += 1;
+        Some(element)
+    }
+}
+
+impl<'a> Iterator for IterMut<'a> {
+    type Item = &'a mut NbtTag;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        use polonius_the_crab::prelude::*;
+
+        let mut element = self.iter.next()?;
+
+        if self.homogeneous {
+            return Some(element);
+        }
+
+        polonius!(|element| -> Option<&'polonius mut NbtTag> {
+            let NbtTag::Compound(compound) = element else {
+                unreachable!()
+            };
+
+            if compound.child_tags.len() == 1 {
+                let child = &mut compound.child_tags[0];
+                if child.0.is_empty() {
+                    polonius_return!(Some(&mut child.1))
+                }
+            }
+        });
+
         Some(element)
     }
 }
@@ -193,5 +230,18 @@ impl<'a> IntoIterator for &'a NbtList {
 
     fn into_iter(self) -> Self::IntoIter {
         Iter { list: self, idx: 0 }
+    }
+}
+
+impl<'a> IntoIterator for &'a mut NbtList {
+    type Item = &'a mut NbtTag;
+
+    type IntoIter = IterMut<'a>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        IterMut {
+            iter: self.inner.iter_mut(),
+            homogeneous: self.homogeneous,
+        }
     }
 }
