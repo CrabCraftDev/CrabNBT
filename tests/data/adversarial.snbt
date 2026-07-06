@@ -1,0 +1,7 @@
+{
+    het_lists: [0b0b, 1b, 0x1S, 2i, 3L, 0.0_4E10f, 5.0D],
+    "\N{Snowman}": '\u2744',
+    bools: [bool(-0.999F), bool(0.999D), bool(0), bool(10), bool(FAlsE), bool(tRue)],
+    uuids: [uuid("00000000-0000-0000-0000-000000000000"), [I; 0, 0B, 0S, 0I]],
+    not_numbers: ["0", "1b"],
+}
