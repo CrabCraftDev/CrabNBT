@@ -233,6 +233,10 @@ impl NbtList {
         self.inner
     }
 
+    pub fn as_inner(&self) -> &Vec<NbtTag> {
+        &self.inner
+    }
+
     pub fn contains(&self, element: &NbtTag) -> bool {
         self.inner.contains(element)
     }

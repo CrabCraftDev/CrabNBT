@@ -64,7 +64,7 @@ impl NbtTag {
             NbtTag::List(list) => {
                 bytes.put_u8(list.element_type_id());
                 bytes.put_i32(list.len() as i32);
-                for tag in list {
+                for tag in list.as_inner() {
                     bytes.put(tag.serialize_data())
                 }
             }
@@ -133,9 +133,21 @@ impl NbtTag {
                 let tag_type_id = bytes.get_u8();
                 let len = bytes.get_i32();
                 let mut list = NbtList::with_capacity(len as usize);
+                let mut all_compounds = true;
+                let mut any_singletons = false;
                 for _ in 0..len {
                     let tag = NbtTag::deserialize_data(bytes, tag_type_id)?;
+                    if let NbtTag::Compound(compound) = &tag {
+                        if compound.child_tags.len() == 1 && compound.child_tags[0].0.is_empty() {
+                            any_singletons = true;
+                        }
+                    } else {
+                        all_compounds = false;
+                    }
                     list.push(tag);
+                }
+                if all_compounds && any_singletons {
+                    list.make_heterogeneous();
                 }
                 Ok(NbtTag::List(list))
             }

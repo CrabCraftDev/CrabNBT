@@ -1,4 +1,4 @@
-use crab_nbt::{NbtCompound, NbtList};
+use crab_nbt::{Nbt, NbtCompound, NbtList, NbtTag};
 
 #[test]
 fn list_types() {
@@ -16,6 +16,12 @@ fn list_types() {
     assert_eq!(iter.next(), Some(&2.into()));
     assert_eq!(iter.next(), Some(&3.into()));
     assert_eq!(iter.next(), None);
+
+    let mut serialized = NbtTag::List(homogeneous).serialize();
+    let NbtTag::List(homogeneous) = NbtTag::deserialize(&mut serialized).unwrap() else {
+        panic!("homogeneous list did not survive round trip");
+    };
+    assert!(homogeneous.is_homogeneous());
 
     let mut heterogeneous = homogeneous.clone();
     heterogeneous.push("four");
@@ -40,4 +46,11 @@ fn list_types() {
         )
     );
     assert_eq!(iter.next(), None);
+
+    let mut serialized = NbtTag::List(heterogeneous).serialize();
+    eprintln!("serialized: {serialized:?}");
+    let NbtTag::List(heterogeneous) = NbtTag::deserialize(&mut serialized).unwrap() else {
+        panic!("heterogeneous list did not survive round trip");
+    };
+    assert!(heterogeneous.is_heterogeneous());
 }
