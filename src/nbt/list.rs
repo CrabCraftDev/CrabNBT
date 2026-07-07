@@ -262,7 +262,7 @@ impl NbtList {
         self.into_iter()
     }
 
-    pub fn extend(&mut self, iter: impl IntoIterator<Item = NbtList>) {
+    pub fn extend(&mut self, iter: impl IntoIterator<Item = NbtTag>) {
         let iter = iter.into_iter();
         self.reserve(iter.size_hint().0);
         iter.into_iter().for_each(|e| self.push(e));
