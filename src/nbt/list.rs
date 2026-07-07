@@ -300,10 +300,16 @@ impl From<Vec<NbtTag>> for NbtList {
             }
         }
 
-        Self {
+        let mut list = Self {
             inner,
-            homogeneous: !(all_compounds && any_singletons),
+            homogeneous: true,
+        };
+
+        if all_compounds && any_singletons {
+            list.make_heterogeneous();
         }
+
+        list
     }
 }
 
