@@ -30,16 +30,16 @@ fn list_types() {
         child_tags: vec![("six".into(), 7.into())],
     });
     assert!(heterogeneous.is_heterogeneous());
-    let mut iter = heterogeneous.iter_mut();
-    assert_eq!(iter.next(), Some(&mut 1.into()));
-    assert_eq!(iter.next(), Some(&mut 2.into()));
-    assert_eq!(iter.next(), Some(&mut 3.into()));
-    assert_eq!(iter.next(), Some(&mut "four".into()));
-    assert_eq!(iter.next(), Some(&mut vec![5].into()));
+    let mut iter = heterogeneous.iter();
+    assert_eq!(iter.next(), Some(&1.into()));
+    assert_eq!(iter.next(), Some(&2.into()));
+    assert_eq!(iter.next(), Some(&3.into()));
+    assert_eq!(iter.next(), Some(&"four".into()));
+    assert_eq!(iter.next(), Some(&vec![5].into()));
     assert_eq!(
         iter.next(),
         Some(
-            &mut NbtCompound {
+            &NbtCompound {
                 child_tags: vec![("six".into(), 7.into())]
             }
             .into()

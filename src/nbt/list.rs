@@ -1,4 +1,4 @@
-use std::ops::{Index, IndexMut, RangeBounds};
+use std::ops::{Index, RangeBounds};
 
 use bytes::{BufMut, BytesMut};
 use thiserror::Error;
@@ -75,7 +75,21 @@ impl NbtList {
         Some(&self.inner[index])
     }
 
-    pub fn get_mut(&mut self, index: usize) -> Option<&mut NbtTag> {
+    #[must_use]
+    pub fn replace(&mut self, index: usize, mut element: NbtTag) -> Option<NbtTag> {
+        let was_homogeneous = self.homogeneous;
+        let existing = self.get_mut(index)?;
+        let existing_type_id = existing.get_type_id();
+
+        std::mem::swap(existing, &mut element);
+        if was_homogeneous && existing_type_id != element.get_type_id() {
+            self.make_heterogeneous();
+        }
+
+        Some(element)
+    }
+
+    fn get_mut(&mut self, index: usize) -> Option<&mut NbtTag> {
         use polonius_the_crab::prelude::*;
 
         if self.homogeneous {
@@ -166,12 +180,12 @@ impl NbtList {
 
         let first_element_id = self.get(0).unwrap().get_type_id();
         let mut new = Vec::with_capacity(self.len());
-        for e in self.into_iter() {
-            if e.get_type_id() != first_element_id {
+        for idx in 0..self.len() {
+            if self[idx].get_type_id() != first_element_id {
                 return Err(MakeHomogeneousError::NotHomogeneous);
             }
 
-            let NbtTag::Compound(ref mut compound) = e else {
+            let NbtTag::Compound(ref mut compound) = self.get_mut(idx).unwrap() else {
                 return Err(MakeHomogeneousError::NonCompoundElement);
             };
 
@@ -263,9 +277,9 @@ impl NbtList {
         self.into_iter()
     }
 
-    pub fn iter_mut<'a>(&'a mut self) -> IterMut<'a> {
-        self.into_iter()
-    }
+    // pub fn iter_mut<'a>(&'a mut self) -> IterMut<'a> {
+    //     self.into_iter()
+    // }
 
     pub fn retain(&mut self, condition: impl FnMut(&NbtTag) -> bool) {
         self.inner.retain(condition)
@@ -412,18 +426,18 @@ impl<'a> IntoIterator for &'a NbtList {
     }
 }
 
-impl<'a> IntoIterator for &'a mut NbtList {
-    type Item = &'a mut NbtTag;
-
-    type IntoIter = IterMut<'a>;
-
-    fn into_iter(self) -> Self::IntoIter {
-        IterMut {
-            iter: self.inner.iter_mut(),
-            homogeneous: self.homogeneous,
-        }
-    }
-}
+// impl<'a> IntoIterator for &'a mut NbtList {
+//     type Item = &'a mut NbtTag;
+//
+//     type IntoIter = IterMut<'a>;
+//
+//     fn into_iter(self) -> Self::IntoIter {
+//         IterMut {
+//             iter: self.inner.iter_mut(),
+//             homogeneous: self.homogeneous,
+//         }
+//     }
+// }
 
 impl AsRef<[NbtTag]> for NbtList {
     fn as_ref(&self) -> &[NbtTag] {
@@ -436,11 +450,5 @@ impl Index<usize> for NbtList {
 
     fn index(&self, index: usize) -> &Self::Output {
         self.get(index).unwrap()
-    }
-}
-
-impl IndexMut<usize> for NbtList {
-    fn index_mut(&mut self, index: usize) -> &mut Self::Output {
-        self.get_mut(index).unwrap()
     }
 }
