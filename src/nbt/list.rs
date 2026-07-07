@@ -229,18 +229,6 @@ impl NbtList {
         }
     }
 
-    /// # SAFETY
-    /// Caller to ensure that the data in the list is homogeneous
-    pub unsafe fn force_homogeneous(&mut self) {
-        self.homogeneous = true;
-    }
-
-    /// # SAFETY
-    /// Caller to ensure that the data in the list is heterogeneous
-    pub unsafe fn force_heterogeneous(&mut self) {
-        self.homogeneous = false;
-    }
-
     pub fn into_inner(self) -> Vec<NbtTag> {
         self.inner
     }
@@ -298,15 +286,30 @@ impl NbtList {
     }
 }
 
-impl FromIterator<NbtTag> for NbtList {
-    fn from_iter<T: IntoIterator<Item = NbtTag>>(iter: T) -> Self {
-        let iter = iter.into_iter();
-        let mut list = NbtList::with_capacity(iter.size_hint().0);
-        for element in iter {
-            list.push(element);
+impl From<Vec<NbtTag>> for NbtList {
+    fn from(inner: Vec<NbtTag>) -> Self {
+        let mut all_compounds = true;
+        let mut any_singletons = false;
+        for e in &inner {
+            if let NbtTag::Compound(compound) = &e {
+                if compound.child_tags.len() == 1 && compound.child_tags[0].0.is_empty() {
+                    any_singletons = true;
+                }
+            } else {
+                all_compounds = false;
+            }
         }
 
-        list
+        Self {
+            inner,
+            homogeneous: !(all_compounds && any_singletons),
+        }
+    }
+}
+
+impl FromIterator<NbtTag> for NbtList {
+    fn from_iter<T: IntoIterator<Item = NbtTag>>(iter: T) -> Self {
+        Vec::from_iter(iter).into()
     }
 }
 

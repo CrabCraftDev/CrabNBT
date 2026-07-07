@@ -132,25 +132,10 @@ impl NbtTag {
             LIST_ID => {
                 let tag_type_id = bytes.get_u8();
                 let len = bytes.get_i32();
-                let mut list = NbtList::with_capacity(len as usize);
-                let mut all_compounds = true;
-                let mut any_singletons = false;
-                for _ in 0..len {
-                    let tag = NbtTag::deserialize_data(bytes, tag_type_id)?;
-                    if let NbtTag::Compound(compound) = &tag {
-                        if compound.child_tags.len() == 1 && compound.child_tags[0].0.is_empty() {
-                            any_singletons = true;
-                        }
-                    } else {
-                        all_compounds = false;
-                    }
-                    list.push(tag);
-                }
-                if all_compounds && any_singletons {
-                    // # SAFETY
-                    // Data in the list was just checked to be heterogeneous
-                    unsafe { list.force_heterogeneous() };
-                }
+                let list = std::iter::repeat_n((), len as usize)
+                    .map(|_| NbtTag::deserialize_data(bytes, tag_type_id))
+                    .collect::<Result<Vec<_>, _>>()?
+                    .into();
                 Ok(NbtTag::List(list))
             }
             COMPOUND_ID => Ok(NbtTag::Compound(NbtCompound::deserialize_content(bytes)?)),
