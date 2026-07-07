@@ -1,4 +1,4 @@
-use crab_nbt::{Nbt, NbtCompound, NbtList, NbtTag};
+use crab_nbt::{NbtCompound, NbtList, NbtTag};
 
 #[test]
 fn list_types() {
