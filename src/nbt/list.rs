@@ -1,3 +1,5 @@
+use bytes::{BufMut, Bytes, BytesMut};
+
 use crate::{NbtCompound, NbtTag};
 
 #[derive(Clone, Debug, PartialEq, PartialOrd)]
@@ -108,6 +110,54 @@ impl NbtList {
                 *e = NbtCompound::wrap(std::mem::replace(e, NbtTag::End)).into();
             }
         }
+    }
+
+    pub fn into_native(self) -> Result<NbtTag, NbtList> {
+        if self.is_heterogeneous() {
+            return Err(self);
+        }
+
+        match self.element_type_id() {
+            crate::nbt::utils::BYTE_ID => {
+                let mut v = BytesMut::with_capacity(self.len());
+                for e in self.into_iter() {
+                    match e {
+                        NbtTag::Byte(e) => v.put_i8(e),
+                        _ => unreachable!(),
+                    }
+                }
+                Ok(NbtTag::ByteArray(v.into()))
+            }
+            crate::nbt::utils::INT_ID => {
+                let mut v = Vec::with_capacity(self.len());
+                for e in self.into_iter() {
+                    match e {
+                        NbtTag::Int(e) => v.push(e),
+                        _ => unreachable!(),
+                    }
+                }
+                Ok(NbtTag::IntArray(v))
+            }
+            crate::nbt::utils::LONG_ID => {
+                let mut v = Vec::with_capacity(self.len());
+                for e in self.into_iter() {
+                    match e {
+                        NbtTag::Long(e) => v.push(e),
+                        _ => unreachable!(),
+                    }
+                }
+                Ok(NbtTag::LongArray(v))
+            }
+            _ => Err(self),
+        }
+    }
+
+    pub fn into_inner(self) -> Vec<NbtTag> {
+        self.inner
+    }
+
+    pub fn contains(&self, element: &NbtTag) -> bool {
+        self.inner.contains(element)
     }
 
     pub fn len(&self) -> usize {
@@ -243,5 +293,11 @@ impl<'a> IntoIterator for &'a mut NbtList {
             iter: self.inner.iter_mut(),
             homogeneous: self.homogeneous,
         }
+    }
+}
+
+impl AsRef<[NbtTag]> for NbtList {
+    fn as_ref(&self) -> &[NbtTag] {
+        &self.inner
     }
 }
