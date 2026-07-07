@@ -229,6 +229,18 @@ impl NbtList {
         }
     }
 
+    /// # SAFETY
+    /// Caller to ensure that the data in the list is homogeneous
+    pub unsafe fn force_homogeneous(&mut self) {
+        self.homogeneous = true;
+    }
+
+    /// # SAFETY
+    /// Caller to ensure that the data in the list is heterogeneous
+    pub unsafe fn force_heterogeneous(&mut self) {
+        self.homogeneous = false;
+    }
+
     pub fn into_inner(self) -> Vec<NbtTag> {
         self.inner
     }

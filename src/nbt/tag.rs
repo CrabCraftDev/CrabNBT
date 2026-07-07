@@ -147,7 +147,9 @@ impl NbtTag {
                     list.push(tag);
                 }
                 if all_compounds && any_singletons {
-                    list.make_heterogeneous();
+                    // # SAFETY
+                    // Data in the list was just checked to be heterogeneous
+                    unsafe { list.force_heterogeneous() };
                 }
                 Ok(NbtTag::List(list))
             }
