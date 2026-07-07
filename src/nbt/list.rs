@@ -40,6 +40,14 @@ impl NbtList {
         }
     }
 
+    pub fn reserve(&mut self, additional_capacity: usize) {
+        self.inner.reserve(additional_capacity)
+    }
+
+    pub fn reserve_exact(&mut self, additional_capacity: usize) {
+        self.inner.reserve_exact(additional_capacity)
+    }
+
     pub fn is_homogeneous(&self) -> bool {
         self.homogeneous
     }
@@ -107,6 +115,25 @@ impl NbtList {
         match element {
             NbtTag::Compound(_) => self.inner.push(element),
             _ => self.inner.push(NbtCompound::wrap(element).into()),
+        }
+    }
+
+    pub fn insert(&mut self, index: usize, element: impl Into<NbtTag>) {
+        let element: NbtTag = element.into();
+        let current_type_id = self.element_type_id();
+
+        if self.homogeneous {
+            let new_type_id = element.get_type_id();
+            self.inner.insert(index, element);
+            if current_type_id != new_type_id && current_type_id != NbtTag::End.get_type_id() {
+                self.make_heterogeneous();
+            }
+            return;
+        }
+
+        match element {
+            NbtTag::Compound(_) => self.inner.insert(index, element),
+            _ => self.inner.insert(index, NbtCompound::wrap(element).into()),
         }
     }
 
@@ -236,6 +263,8 @@ impl NbtList {
     }
 
     pub fn extend(&mut self, iter: impl IntoIterator<Item = NbtList>) {
+        let iter = iter.into_iter();
+        self.reserve(iter.size_hint().0);
         iter.into_iter().for_each(|e| self.push(e));
     }
 }
