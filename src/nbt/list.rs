@@ -288,15 +288,26 @@ impl NbtList {
 
 impl From<Vec<NbtTag>> for NbtList {
     fn from(inner: Vec<NbtTag>) -> Self {
-        let mut all_compounds = true;
+        if inner.is_empty() {
+            return Self {
+                inner,
+                homogeneous: true,
+            };
+        }
+
+        let first_id = inner[0].get_type_id();
+        let mut all_equal_ids = true;
         let mut any_singletons = false;
+
         for e in &inner {
+            if e.get_type_id() != first_id {
+                all_equal_ids = false;
+            }
+
             if let NbtTag::Compound(compound) = &e {
                 if compound.child_tags.len() == 1 && compound.child_tags[0].0.is_empty() {
                     any_singletons = true;
                 }
-            } else {
-                all_compounds = false;
             }
         }
 
@@ -305,7 +316,7 @@ impl From<Vec<NbtTag>> for NbtList {
             homogeneous: true,
         };
 
-        if all_compounds && any_singletons {
+        if !all_equal_ids || (first_id == super::utils::COMPOUND_ID && any_singletons) {
             list.make_heterogeneous();
         }
 
