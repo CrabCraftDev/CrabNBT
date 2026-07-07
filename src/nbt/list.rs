@@ -234,6 +234,10 @@ impl NbtList {
     pub fn iter_mut<'a>(&'a mut self) -> IterMut<'a> {
         self.into_iter()
     }
+
+    pub fn extend(&mut self, iter: impl IntoIterator<Item = NbtList>) {
+        iter.into_iter().for_each(|e| self.push(e));
+    }
 }
 
 impl FromIterator<NbtTag> for NbtList {
