@@ -184,6 +184,7 @@ impl NbtList {
                 )));
             }
         }
+        self.homogeneous = true;
 
         Ok(())
     }
