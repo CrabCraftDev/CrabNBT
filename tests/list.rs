@@ -48,7 +48,6 @@ fn list_types() {
     assert_eq!(iter.next(), None);
 
     let mut serialized = NbtTag::List(heterogeneous).serialize();
-    eprintln!("serialized: {serialized:?}");
     let NbtTag::List(heterogeneous) = NbtTag::deserialize(&mut serialized).unwrap() else {
         panic!("heterogeneous list did not survive round trip");
     };
