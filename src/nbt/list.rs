@@ -1,4 +1,7 @@
-use bytes::{BufMut, Bytes, BytesMut};
+use std::ops::{Index, IndexMut};
+
+use bytes::{BufMut, BytesMut};
+use thiserror::Error;
 
 use crate::{NbtCompound, NbtTag};
 
@@ -12,6 +15,14 @@ impl Default for NbtList {
     fn default() -> Self {
         Self::new()
     }
+}
+
+#[derive(Error, Debug)]
+pub enum MakeHomogeneousError {
+    #[error("Not homogeneous")]
+    NotHomogeneous,
+    #[error("Non-Compound element in heterogeneous List")]
+    NonCompoundElement,
 }
 
 impl NbtList {
@@ -99,6 +110,10 @@ impl NbtList {
         }
     }
 
+    pub fn remove(&mut self, index: usize) -> NbtTag {
+        self.inner.remove(index)
+    }
+
     pub fn make_heterogeneous(&mut self) {
         if self.is_heterogeneous() {
             return;
@@ -110,6 +125,40 @@ impl NbtList {
                 *e = NbtCompound::wrap(std::mem::replace(e, NbtTag::End)).into();
             }
         }
+    }
+
+    pub fn make_homogeneous(&mut self) -> Result<(), MakeHomogeneousError> {
+        if self.homogeneous {
+            return Ok(());
+        }
+
+        if self.is_empty() {
+            self.homogeneous = true;
+            return Ok(());
+        }
+
+        let first_element_id = self.get(0).unwrap().get_type_id();
+        let mut new = Vec::with_capacity(self.len());
+        for e in self.into_iter() {
+            if e.get_type_id() != first_element_id {
+                return Err(MakeHomogeneousError::NotHomogeneous);
+            }
+
+            let NbtTag::Compound(ref mut compound) = e else {
+                return Err(MakeHomogeneousError::NonCompoundElement);
+            };
+
+            if compound.child_tags.len() == 1 && compound.child_tags[0].0.is_empty() {
+                new.push(compound.child_tags.remove(0).1);
+            } else {
+                new.push(NbtTag::Compound(std::mem::replace(
+                    compound,
+                    NbtCompound::new(),
+                )));
+            }
+        }
+
+        Ok(())
     }
 
     pub fn into_native(self) -> Result<NbtTag, NbtList> {
@@ -299,5 +348,19 @@ impl<'a> IntoIterator for &'a mut NbtList {
 impl AsRef<[NbtTag]> for NbtList {
     fn as_ref(&self) -> &[NbtTag] {
         &self.inner
+    }
+}
+
+impl Index<usize> for NbtList {
+    type Output = NbtTag;
+
+    fn index(&self, index: usize) -> &Self::Output {
+        self.get(index).unwrap()
+    }
+}
+
+impl IndexMut<usize> for NbtList {
+    fn index_mut(&mut self, index: usize) -> &mut Self::Output {
+        self.get_mut(index).unwrap()
     }
 }
