@@ -1,4 +1,4 @@
-use std::ops::{Index, IndexMut};
+use std::ops::{Index, IndexMut, RangeBounds};
 
 use bytes::{BufMut, BytesMut};
 use thiserror::Error;
@@ -262,10 +262,22 @@ impl NbtList {
         self.into_iter()
     }
 
-    pub fn extend(&mut self, iter: impl IntoIterator<Item = NbtTag>) {
+    pub fn extend<T, I>(&mut self, iter: T)
+    where
+        T: IntoIterator<Item = I>,
+        I: Into<NbtTag>,
+    {
         let iter = iter.into_iter();
         self.reserve(iter.size_hint().0);
-        iter.into_iter().for_each(|e| self.push(e));
+        iter.into_iter().for_each(|e| self.push(e.into()));
+    }
+
+    pub fn retain(&mut self, condition: impl FnMut(&NbtTag) -> bool) {
+        self.inner.retain(condition)
+    }
+
+    pub fn drain(&mut self, range: impl RangeBounds<usize>) -> std::vec::Drain<'_, NbtTag> {
+        self.inner.drain(range)
     }
 }
 
