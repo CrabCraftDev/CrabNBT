@@ -1,3 +1,4 @@
+use bytes::TryGetError;
 #[cfg(feature = "serde")]
 use serde::{de, ser};
 #[cfg(feature = "serde")]
@@ -11,6 +12,8 @@ pub type Result<T> = std::result::Result<T, Error>;
 pub enum Error {
     #[error("The root tag of the NBT file is not a compound tag. Received tag id: {0}")]
     NoRootCompound(u8),
+    #[error("Requested {requested} bytes of {remaining} available")]
+    NoDataRemaining { requested: usize, remaining: usize },
     #[error("The provided string is not a valid Java string.")]
     InvalidJavaString,
     #[error("Encountered an unknown NBT tag id {0}.")]
@@ -21,6 +24,15 @@ pub enum Error {
     UnsupportedType(String),
     #[error(transparent)]
     Io(#[from] io::Error),
+}
+
+impl From<TryGetError> for Error {
+    fn from(value: TryGetError) -> Self {
+        Self::NoDataRemaining {
+            requested: value.requested,
+            remaining: value.available,
+        }
+    }
 }
 
 #[cfg(feature = "serde")]

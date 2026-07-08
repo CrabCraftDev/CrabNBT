@@ -24,7 +24,7 @@ impl NbtCompound {
         let mut compound = NbtCompound::new();
 
         while bytes.has_remaining() {
-            let tag_id = bytes.get_u8();
+            let tag_id = bytes.try_get_u8()?;
             if tag_id == END_ID {
                 break;
             }

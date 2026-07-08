@@ -74,3 +74,9 @@ fn nested_tag_compounds() {
 
     assert_eq!(deserialized_nbt, original_nbt);
 }
+
+#[test]
+fn deserialize_empty() {
+    let mut buf: &[u8] = &[];
+    assert!(NbtTag::deserialize(&mut buf).is_err());
+}

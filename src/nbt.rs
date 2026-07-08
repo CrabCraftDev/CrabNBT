@@ -28,7 +28,7 @@ impl Nbt {
     }
 
     pub fn read(bytes: &mut impl Buf) -> Result<Nbt, Error> {
-        let tag_type_id = bytes.get_u8();
+        let tag_type_id = bytes.try_get_u8()?;
 
         if tag_type_id != COMPOUND_ID {
             return Err(Error::NoRootCompound(tag_type_id));
@@ -47,7 +47,7 @@ impl Nbt {
     /// Reads an NBT tag that doesn't contain the name of the root compound.
     /// Used in [Network NBT](https://wiki.vg/NBT#Network_NBT_(Java_Edition)).
     pub fn read_unnamed(bytes: &mut impl Buf) -> Result<Nbt, Error> {
-        let tag_type_id = bytes.get_u8();
+        let tag_type_id = bytes.try_get_u8()?;
 
         if tag_type_id != COMPOUND_ID {
             return Err(Error::NoRootCompound(tag_type_id));

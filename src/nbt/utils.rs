@@ -19,7 +19,7 @@ pub const INT_ARRAY_ID: u8 = 11;
 pub const LONG_ARRAY_ID: u8 = 12;
 
 pub fn get_nbt_string(bytes: &mut impl Buf) -> Result<String, Error> {
-    let len = bytes.get_u16() as usize;
+    let len = bytes.try_get_u16()? as usize;
     let string_bytes = bytes.copy_to_bytes(len);
     let string = decode(&string_bytes).map_err(|_| Error::InvalidJavaString)?;
     Ok(string.to_string())

@@ -82,8 +82,8 @@ impl<'de, T: Buf> de::Deserializer<'de> for &mut Deserializer<'de, T> {
         let tag_to_deserialize = self.tag_to_deserialize.unwrap();
         match tag_to_deserialize {
             LIST_ID => {
-                let list_type = self.input.get_u8();
-                let remaining_values = self.input.get_u32();
+                let list_type = self.input.try_get_u8()?;
+                let remaining_values = self.input.try_get_u32()?;
                 return visitor.visit_seq(ListAccess {
                     de: self,
                     list_type,
@@ -131,7 +131,7 @@ impl<'de, T: Buf> de::Deserializer<'de> for &mut Deserializer<'de, T> {
         V: Visitor<'de>,
     {
         if self.tag_to_deserialize.unwrap() == BYTE_ID {
-            let value = self.input.get_u8();
+            let value = self.input.try_get_u8()?;
             if value != 0 {
                 return visitor.visit_bool(true);
             }
@@ -151,14 +151,14 @@ impl<'de, T: Buf> de::Deserializer<'de> for &mut Deserializer<'de, T> {
         V: Visitor<'de>,
     {
         if self.tag_to_deserialize.is_none() {
-            let next_byte = self.input.get_u8();
+            let next_byte = self.input.try_get_u8()?;
             if next_byte != COMPOUND_ID {
                 return Err(Error::NoRootCompound(next_byte));
             }
 
             if self.is_named {
                 // Compound name is never used, so we can skip it
-                let length = self.input.get_u16() as usize;
+                let length = self.input.try_get_u16()? as usize;
                 self.input.advance(length);
             }
         }
@@ -203,7 +203,7 @@ impl<'de, T: Buf> MapAccess<'de> for CompoundAccess<'_, 'de, T> {
     where
         K: DeserializeSeed<'de>,
     {
-        let tag = self.de.input.get_u8();
+        let tag = self.de.input.try_get_u8()?;
         self.de.tag_to_deserialize = Some(tag);
 
         if tag == END_ID {
