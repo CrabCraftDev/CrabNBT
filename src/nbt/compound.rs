@@ -8,7 +8,7 @@ use std::fmt::{self, Debug, Display, Formatter};
 use std::io::{Cursor, Write};
 use std::vec::IntoIter;
 
-#[derive(Clone, Debug, Default, PartialEq, PartialOrd, Into)]
+#[derive(Clone, Debug, Default, PartialEq, Eq, PartialOrd, Ord, Into)]
 pub struct NbtCompound {
     pub child_tags: Vec<(String, NbtTag)>,
 }
