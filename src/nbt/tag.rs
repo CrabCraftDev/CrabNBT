@@ -84,10 +84,11 @@ impl NbtTag {
                     for tag in list {
                         match tag {
                             NbtTag::Compound(_) => bytes.put(tag.serialize_data()),
-                            other => {
-                                bytes.put_u8(other.get_type_id());
-                                bytes.put(NbtTag::String(String::new()).serialize_data());
-                                bytes.put(other.serialize_data());
+                            value => {
+                                // Manually serialize value as a Compound, to avoid a Clone
+                                bytes.put_u8(value.get_type_id());
+                                bytes.put_u16(0); // Empty string key
+                                bytes.put(value.serialize_data());
                                 bytes.put_u8(END_ID);
                             }
                         }
