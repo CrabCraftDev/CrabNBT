@@ -7,7 +7,6 @@ mod nbt;
 pub mod serde;
 
 pub use crab_nbt::nbt::compound::NbtCompound;
-pub use crab_nbt::nbt::list::NbtList;
 pub use crab_nbt::nbt::tag::NbtTag;
 pub use crab_nbt::nbt::Nbt;
 

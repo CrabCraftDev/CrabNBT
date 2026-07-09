@@ -19,6 +19,8 @@ pub enum Error {
     SerdeError(String),
     #[error("NBT doesn't support this type {0}")]
     UnsupportedType(String),
+    #[error("List contains element of different type")]
+    ListDifferentType,
     #[error(transparent)]
     Io(#[from] io::Error),
 }

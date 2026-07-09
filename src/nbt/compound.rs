@@ -1,4 +1,3 @@
-use crate::nbt::list::NbtList;
 use crate::nbt::utils::{escape_name, join_formatted};
 use crate::{error::Error, Nbt};
 use bytes::{Buf, BufMut, Bytes, BytesMut};
@@ -25,6 +24,10 @@ impl NbtCompound {
         Self {
             child_tags: vec![(String::new(), child.into())],
         }
+    }
+
+    pub fn is_wrapper(&self) -> bool {
+        self.child_tags.len() == 1 && self.child_tags[0].0.is_empty()
     }
 
     pub fn deserialize_content(bytes: &mut impl Buf) -> Result<NbtCompound, Error> {
@@ -118,7 +121,7 @@ impl NbtCompound {
         self.get(name).and_then(|tag| tag.extract_string())
     }
 
-    pub fn get_list(&self, name: &str) -> Option<&NbtList> {
+    pub fn get_list(&self, name: &str) -> Option<&Vec<NbtTag>> {
         self.get(name).and_then(|tag| tag.extract_list())
     }
 

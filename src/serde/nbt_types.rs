@@ -1,4 +1,4 @@
-use crate::{NbtCompound, NbtList, NbtTag};
+use crate::{NbtCompound, NbtTag};
 use serde::de::value::MapAccessDeserializer;
 use serde::{Deserialize, Serialize};
 
@@ -27,8 +27,8 @@ impl Serialize for NbtTag {
             NbtTag::List(list_items) => {
                 use serde::ser::SerializeSeq;
                 let mut seq = serializer.serialize_seq(Some(list_items.len()))?;
-                for tag in list_items {
-                    seq.serialize_element(tag)?;
+                for item in list_items.iter() {
+                    seq.serialize_element(item)?;
                 }
                 seq.end()
             }
@@ -106,8 +106,8 @@ impl<'de> Deserialize<'de> for NbtTag {
             where
                 A: serde::de::SeqAccess<'de>,
             {
-                let mut items = NbtList::new();
-                while let Some(tag) = seq.next_element::<NbtTag>()? {
+                let mut items = Vec::new();
+                while let Some(tag) = seq.next_element()? {
                     items.push(tag);
                 }
                 Ok(NbtTag::List(items))

@@ -6,8 +6,6 @@ use derive_more::From;
 use std::fmt::{self, Display, Formatter};
 use std::io::Cursor;
 
-use crate::nbt::list::NbtList;
-
 /// Enum representing the different types of NBT tags.
 /// Each variant corresponds to a different type of data that can be stored in an NBT tag.
 #[repr(u8)]
@@ -22,7 +20,7 @@ pub enum NbtTag {
     Double(f64) = DOUBLE_ID,
     ByteArray(Bytes) = BYTE_ARRAY_ID,
     String(String) = STRING_ID,
-    List(NbtList) = LIST_ID,
+    List(Vec<NbtTag>) = LIST_ID,
     Compound(NbtCompound) = COMPOUND_ID,
     IntArray(Vec<i32>) = INT_ARRAY_ID,
     LongArray(Vec<i64>) = LONG_ARRAY_ID,
@@ -62,10 +60,38 @@ impl NbtTag {
                 bytes.put_slice(&java_string);
             }
             NbtTag::List(list) => {
-                bytes.put_u8(list.element_type_id());
-                bytes.put_i32(list.len() as i32);
-                for tag in list.as_inner() {
-                    bytes.put(tag.serialize_data())
+                let ty = list
+                    .first()
+                    .map(|e| e.get_type_id())
+                    .unwrap_or(NbtTag::End.get_type_id());
+
+                let mut homogeneous = true;
+                for element in list {
+                    if element.get_type_id() != ty {
+                        homogeneous = false;
+                    }
+                }
+
+                if homogeneous {
+                    bytes.put_u8(ty);
+                    bytes.put_i32(list.len() as i32);
+                    for tag in list {
+                        bytes.put(tag.serialize_data())
+                    }
+                } else {
+                    bytes.put_u8(COMPOUND_ID);
+                    bytes.put_i32(list.len() as i32);
+                    for tag in list {
+                        match tag {
+                            NbtTag::Compound(_) => bytes.put(tag.serialize_data()),
+                            other => {
+                                bytes.put_u8(other.get_type_id());
+                                bytes.put(NbtTag::String(String::new()).serialize_data());
+                                bytes.put(other.serialize_data());
+                                bytes.put_u8(END_ID);
+                            }
+                        }
+                    }
                 }
             }
             NbtTag::Compound(compound) => {
@@ -132,10 +158,37 @@ impl NbtTag {
             LIST_ID => {
                 let tag_type_id = bytes.get_u8();
                 let len = bytes.get_i32();
-                let list = std::iter::repeat_n((), len as usize)
-                    .map(|_| NbtTag::deserialize_data(bytes, tag_type_id))
-                    .collect::<Result<Vec<_>, _>>()?
-                    .into();
+                let mut list = Vec::with_capacity(len as usize);
+                let mut all_compounds = len != 0;
+                let mut any_singletons = false;
+                for _ in 0..len {
+                    let tag = NbtTag::deserialize_data(bytes, tag_type_id)?;
+                    if tag.get_type_id() != tag_type_id {
+                        return Err(Error::ListDifferentType);
+                    }
+
+                    if let NbtTag::Compound(compound) = &tag {
+                        if !any_singletons && compound.is_wrapper() {
+                            any_singletons = true;
+                        }
+                    } else {
+                        all_compounds = false;
+                    }
+
+                    list.push(tag);
+                }
+
+                if all_compounds && any_singletons {
+                    for tag in &mut list {
+                        match tag {
+                            NbtTag::Compound(ref mut compound) if compound.is_wrapper() => {
+                                *tag = compound.child_tags.remove(0).1;
+                            }
+                            _ => (),
+                        }
+                    }
+                }
+
                 Ok(NbtTag::List(list))
             }
             COMPOUND_ID => Ok(NbtTag::Compound(NbtCompound::deserialize_content(bytes)?)),
@@ -228,7 +281,7 @@ impl NbtTag {
         }
     }
 
-    pub fn extract_list(&self) -> Option<&NbtList> {
+    pub fn extract_list(&self) -> Option<&Vec<NbtTag>> {
         match self {
             NbtTag::List(list) => Some(list),
             _ => None,

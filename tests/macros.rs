@@ -1,5 +1,5 @@
 use bytes::Bytes;
-use crab_nbt::{nbt, Nbt, NbtCompound, NbtList, NbtTag};
+use crab_nbt::{nbt, Nbt, NbtCompound, NbtTag};
 
 #[test]
 fn nbt_macro_handles_empty_content() {
@@ -29,7 +29,7 @@ fn nbt_macro_handles_array_content() {
 
     let array = nbt.get_list("array").unwrap();
 
-    assert_eq!(array, &NbtList::from_iter([1.into(), 2.into(), 3.into()]));
+    assert_eq!(array, &vec![1.into(), 2.into(), 3.into()]);
 }
 
 #[test]
@@ -55,7 +55,7 @@ fn nbt_macro_complex_object() {
             ("int_array".to_owned(), NbtTag::IntArray(vec![1])),
             (
                 "list".to_owned(),
-                NbtTag::List(NbtList::from_iter(["a".into(), "b".into(), "c".into()])),
+                NbtTag::List(vec!["a".into(), "b".into(), "c".into()]),
             ),
             (
                 "nbt_inner".to_owned(),

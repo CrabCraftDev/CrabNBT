@@ -84,10 +84,10 @@ macro_rules! nbt_inner {
         $crate::NbtTag::ByteArray(::bytes::Bytes::from_iter([$($lit),*]))
     };
     ([$($lit:literal),* $(,)?]) => {
-        $crate::NbtTag::List($crate::NbtList::from(::std::vec![$($lit.into()),*]))
+        $crate::NbtTag::List(::std::vec![$($lit.into()),*])
     };
     ([$($t:tt),* $(,)?]) => {
-        $crate::NbtTag::List($crate::NbtList::from(::std::vec![$(nbt_inner!($t).into()),*]))
+        $crate::NbtTag::List(::std::vec![$(nbt_inner!($t).into()),*])
     };
 
 }

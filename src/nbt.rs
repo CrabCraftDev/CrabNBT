@@ -8,7 +8,6 @@ use std::io::{Cursor, Write};
 use std::ops::Deref;
 
 pub mod compound;
-pub mod list;
 pub mod tag;
 pub mod utils;
 
