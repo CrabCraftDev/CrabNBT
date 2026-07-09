@@ -1,22 +1,32 @@
 use std::fmt::{self, Display, Formatter};
 
 use crate::error::Error;
-use bytes::Buf;
+use bytes::{Buf, BufMut};
+
+use crate::{NbtCompound, NbtTag, TryAsMut, TryAsRef, nbt::list::NbtList};
+use as_any::AsAny;
+use bytes::{Bytes};
 use simd_cesu8::decode;
 
-pub const END_ID: u8 = 0;
-pub const BYTE_ID: u8 = 1;
-pub const SHORT_ID: u8 = 2;
-pub const INT_ID: u8 = 3;
-pub const LONG_ID: u8 = 4;
-pub const FLOAT_ID: u8 = 5;
-pub const DOUBLE_ID: u8 = 6;
-pub const BYTE_ARRAY_ID: u8 = 7;
-pub const STRING_ID: u8 = 8;
-pub const LIST_ID: u8 = 9;
-pub const COMPOUND_ID: u8 = 10;
-pub const INT_ARRAY_ID: u8 = 11;
-pub const LONG_ARRAY_ID: u8 = 12;
+// compatibility export
+pub use ids::*;
+
+pub mod ids {
+    pub const END_ID: u8 = 0;
+    pub const BYTE_ID: u8 = 1;
+    pub const SHORT_ID: u8 = 2;
+    pub const INT_ID: u8 = 3;
+    pub const LONG_ID: u8 = 4;
+    pub const FLOAT_ID: u8 = 5;
+    pub const DOUBLE_ID: u8 = 6;
+    pub const BYTE_ARRAY_ID: u8 = 7;
+    pub const STRING_ID: u8 = 8;
+    pub const LIST_ID: u8 = 9;
+    pub const COMPOUND_ID: u8 = 10;
+    pub const INT_ARRAY_ID: u8 = 11;
+    pub const LONG_ARRAY_ID: u8 = 12;
+}
+
 
 pub fn get_nbt_string(bytes: &mut impl Buf) -> Result<String, Error> {
     let len = bytes.try_get_u16()? as usize;
@@ -43,6 +53,22 @@ where
             from_be(arr)
         })
         .collect()
+}
+
+pub(crate) fn write_listlike<T: Display, I: IntoIterator<Item = T>>(
+    f: &mut Formatter<'_>,
+    prefix: &'static str,
+    affix: &'static str,
+    arr: I,
+) -> fmt::Result {
+    write!(f, "[{prefix}")?;
+    join_formatted(
+        f,
+        ", ",
+        arr.into_iter()
+            .map(|x| move |f: &mut Formatter<'_>| write!(f, "{x}{affix}")),
+    )?;
+    write!(f, "]")
 }
 
 /// like [T]::join, but allowing for formatting
