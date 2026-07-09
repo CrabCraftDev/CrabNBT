@@ -20,6 +20,16 @@ impl NbtCompound {
         }
     }
 
+    pub fn wrap(child: impl Into<NbtTag>) -> Self {
+        Self {
+            child_tags: vec![(String::new(), child.into())],
+        }
+    }
+
+    pub fn is_wrapper(&self) -> bool {
+        self.child_tags.len() == 1 && self.child_tags[0].0.is_empty()
+    }
+
     pub fn deserialize_content(bytes: &mut impl Buf) -> Result<NbtCompound, Error> {
         let mut compound = NbtCompound::new();
 

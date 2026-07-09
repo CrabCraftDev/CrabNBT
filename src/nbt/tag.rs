@@ -60,10 +60,39 @@ impl NbtTag {
                 bytes.put_slice(&java_string);
             }
             NbtTag::List(list) => {
-                bytes.put_u8(list.first().unwrap_or(&NbtTag::End).get_type_id());
-                bytes.put_i32(list.len() as i32);
-                for nbt_tag in list {
-                    bytes.put(nbt_tag.serialize_data())
+                let ty = list
+                    .first()
+                    .map(|e| e.get_type_id())
+                    .unwrap_or(NbtTag::End.get_type_id());
+
+                let mut homogeneous = true;
+                for element in list {
+                    if element.get_type_id() != ty {
+                        homogeneous = false;
+                    }
+                }
+
+                if homogeneous {
+                    bytes.put_u8(ty);
+                    bytes.put_i32(list.len() as i32);
+                    for tag in list {
+                        bytes.put(tag.serialize_data())
+                    }
+                } else {
+                    bytes.put_u8(COMPOUND_ID);
+                    bytes.put_i32(list.len() as i32);
+                    for tag in list {
+                        match tag {
+                            NbtTag::Compound(_) => bytes.put(tag.serialize_data()),
+                            value => {
+                                // Manually serialize value as a Compound, to avoid a Clone
+                                bytes.put_u8(value.get_type_id());
+                                bytes.put_u16(0); // Empty string key
+                                bytes.put(value.serialize_data());
+                                bytes.put_u8(END_ID);
+                            }
+                        }
+                    }
                 }
             }
             NbtTag::Compound(compound) => {
@@ -131,11 +160,36 @@ impl NbtTag {
                 let tag_type_id = bytes.try_get_u8()?;
                 let len = bytes.try_get_i32()?;
                 let mut list = Vec::with_capacity(len as usize);
+                let mut all_compounds = len != 0;
+                let mut any_singletons = false;
                 for _ in 0..len {
                     let tag = NbtTag::deserialize_data(bytes, tag_type_id)?;
-                    assert_eq!(tag.get_type_id(), tag_type_id);
+                    if tag.get_type_id() != tag_type_id {
+                        return Err(Error::ListDifferentType);
+                    }
+
+                    if let NbtTag::Compound(compound) = &tag {
+                        if !any_singletons && compound.is_wrapper() {
+                            any_singletons = true;
+                        }
+                    } else {
+                        all_compounds = false;
+                    }
+
                     list.push(tag);
                 }
+
+                if all_compounds && any_singletons {
+                    for tag in &mut list {
+                        match tag {
+                            NbtTag::Compound(ref mut compound) if compound.is_wrapper() => {
+                                *tag = compound.child_tags.remove(0).1;
+                            }
+                            _ => (),
+                        }
+                    }
+                }
+
                 Ok(NbtTag::List(list))
             }
             COMPOUND_ID => Ok(NbtTag::Compound(NbtCompound::deserialize_content(bytes)?)),
