@@ -6,11 +6,11 @@ use derive_more::{From, TryInto};
 use crate::{NbtCompound, nbt::{nbt_trait::NbtCompatible, utils::{ids::*, write_listlike}}};
 
 macro_rules! call_uniform {
-    ($self:ident.$($expression:tt)+) => {
+    (($self:ident.$($expression:tt)+), $end_case:expr) => {
         {
             use self::NbtList::*;
             match $self {
-                End => todo!("End case in call_uniform"),
+                End => $end_case,
                 Byte(x) => x.$($expression)*,
                 Short(x) => x.$($expression)*,
                 Int(x) => x.$($expression)*,
@@ -69,11 +69,11 @@ impl NbtList {
     }
 
     pub fn get(&self, index: usize) -> Option<&dyn NbtCompatible> {
-        call_uniform!(self.get(index).map(|x| x as &dyn NbtCompatible))
+        call_uniform!((self.get(index).map(|x| x as &dyn NbtCompatible)), None)
     }
 
     pub fn get_mut<'a>(&'a mut self, index: usize) -> Option<&'a mut dyn NbtCompatible > {
-        call_uniform!(self.get_mut(index).map(|x| x as &mut dyn NbtCompatible))
+        call_uniform!((self.get_mut(index).map(|x| x as &mut dyn NbtCompatible)), None)
     }
 
     pub fn iter(&self) -> Iter<'_> {
@@ -89,12 +89,12 @@ impl Index<usize> for NbtList {
     type Output = dyn NbtCompatible;
 
     fn index(&self, index: usize) -> &Self::Output {
-        call_uniform!(self.index(index))
+        call_uniform!((self.index(index)), panic!("Index out of bounds for empty list. Index {index}"))
     }
 }
 impl IndexMut<usize> for NbtList {
     fn index_mut(&mut self, index: usize) -> &mut Self::Output {
-        call_uniform!(self.index_mut(index))
+        call_uniform!((self.index_mut(index)), panic!("Index out of bounds for empty list. Index {index}"))
     }
 }
 impl<'a> IntoIterator for &'a NbtList {
@@ -117,19 +117,30 @@ impl<'a> IntoIterator for &'a mut NbtList {
 }
 impl Display for NbtList {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write_listlike(f, "", "", self.iter())
+        // call_uniform!((self, |x: _| write_listlike(f, "", "", x.iter())), Ok(()))
+        write_listlike(f, "", "", self.iter().map(|e| e.snbt_dyn()))
     }
 }
 
 macro_rules! impl_TryAsRefAndMut {
+    // empty lists are always serialized as lists of type TAG_END in NBT
+    // such a list could have any type, so all TryAsRef and TryAsMut calls must succeed on it.
+    // to ensure that no behaviour changes occur between reloading of a list, any TryAsRef and TryAsMut on empty lists succeeds.
     ($(($variant:ident, $type:ty)),+) => {
         use crate::{TryAsRef, TryAsMut};
         $(
             impl TryAsRef<Vec<$type>> for NbtList {
                 fn try_as_ref(&self) -> Option<&Vec<$type>> {
+                    static EMPTY_VEC: Vec<$type> = Vec::new();
                     match self {
                         Self::$variant(x) => Some(x),
-                        _ => None
+                        _ => {
+                            if self.is_empty() {
+                                Some(&EMPTY_VEC)
+                            } else {
+                                None
+                            }
+                        }
                     }
                 }
             }
@@ -137,7 +148,17 @@ macro_rules! impl_TryAsRefAndMut {
                 fn try_as_mut(&mut self) -> Option<&mut Vec<$type>> {
                     match self {
                         Self::$variant(x) => Some(x),
-                        _ => None
+                        _ => {
+                            if self.is_empty() {
+                                *self = Self::$variant(Vec::new());
+                                match self {
+                                    Self::$variant(x) => Some(x),
+                                    _ => unreachable!()
+                                }
+                            } else {
+                                None
+                            }
+                        }
                     }
                 }
             }
@@ -145,13 +166,13 @@ macro_rules! impl_TryAsRefAndMut {
     };
 }
 macro_rules! implUniformMethods {
-    ($($method:ident($($modifiers:tt),*;$($param_name:ident: $param_type:ty),*) $(-> $return:ty)?),+) => {
+    ($($method:ident($($modifiers:tt),*;$($param_name:ident: $param_type:ty),*) $(-> $return:ty)? | $on_end:expr),+) => {
         impl NbtList {
             $(
                 pub fn $method($($modifiers)*self, $($param_name: $param_type),*) $(-> $return)? {
                     use self::NbtList::*;
                     match self {
-                        End => todo!("End tag in implUniformMethods"),
+                        End => $on_end,
                         Byte(x) => x.$method($($param_name),*),
                         Short(x) => x.$method($($param_name),*),
                         Int(x) => x.$method($($param_name),*),
@@ -172,22 +193,18 @@ macro_rules! implUniformMethods {
 }
 // TODO: Is it better to implement or not to implement these methods?
 implUniformMethods! {
-    len(&;) -> usize,
-    capacity(&;) -> usize,
-    reserve(&,mut; additional: usize),
-    reserve_exact(&,mut; additional: usize),
-    try_reserve(&,mut; additional: usize) -> Result<(), std::collections::TryReserveError>,
-    try_reserve_exact(&,mut; additional: usize) -> Result<(), std::collections::TryReserveError>,
-    shrink_to_fit(&,mut;),
-    shrink_to(&,mut; min_capacity: usize),
-    truncate(&,mut; len: usize),
-    clear(&,mut;),
-    is_empty(&,mut;) -> bool,
-    dedup(&,mut;),
-    swap(&,mut; a: usize, b: usize),
-    reverse(&,mut;),
-    rotate_left(&,mut; mid: usize),
-    rotate_right(&,mut; k: usize)
+    len(&;) -> usize | 0,
+    capacity(&;) -> usize | 0,
+    shrink_to_fit(&,mut;) | (),
+    shrink_to(&,mut; min_capacity: usize) | (),
+    truncate(&,mut; len: usize) | (),
+    clear(&,mut;) | (),
+    is_empty(&;) -> bool | true,
+    dedup(&,mut;) | (),
+    swap(&,mut; a: usize, b: usize) | panic!("Tried to swap on an empty list with. {a}<->{b}"),
+    reverse(&,mut;) | (),
+    rotate_left(&,mut; mid: usize) | if mid > 0 { panic!("Tried to rotate an empty list") },
+    rotate_right(&,mut; k: usize) | if k > 0 { panic!("Tried to rotate an empty list") }
     
 }
 
