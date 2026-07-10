@@ -6,6 +6,10 @@ use derive_more::From;
 use std::fmt::{self, Display, Formatter};
 use std::io::Cursor;
 
+use crate::{TryAsMut, TryAsRef};
+use crate::nbt::list::NbtList;
+use crate::nbt::nbt_trait::NbtCompatible;
+
 /// Enum representing the different types of NBT tags.
 /// Each variant corresponds to a different type of data that can be stored in an NBT tag.
 #[repr(u8)]
@@ -20,7 +24,7 @@ pub enum NbtTag {
     Double(f64) = DOUBLE_ID,
     ByteArray(Bytes) = BYTE_ARRAY_ID,
     String(String) = STRING_ID,
-    List(Vec<NbtTag>) = LIST_ID,
+    List(NbtList) = LIST_ID,
     Compound(NbtCompound) = COMPOUND_ID,
     IntArray(Vec<i32>) = INT_ARRAY_ID,
     LongArray(Vec<i64>) = LONG_ARRAY_ID,
@@ -60,8 +64,14 @@ impl NbtTag {
                 bytes.put_slice(&java_string);
             }
             NbtTag::List(list) => {
-                bytes.put_u8(list.first().unwrap_or(&NbtTag::End).get_type_id());
-                bytes.put_i32(list.len() as i32);
+                bytes.put_u8(
+                    if list.is_empty() {
+                        END_ID
+                    } else {
+                        list.get_type_id()
+                    }
+                );
+                    bytes.put_i32(list.len() as i32);
                 for nbt_tag in list {
                     bytes.put(nbt_tag.serialize_data())
                 }
@@ -228,7 +238,7 @@ impl NbtTag {
         }
     }
 
-    pub fn extract_list(&self) -> Option<&Vec<NbtTag>> {
+    pub fn extract_list(&self) -> Option<&NbtList> {
         match self {
             NbtTag::List(list) => Some(list),
             _ => None,
@@ -256,6 +266,46 @@ impl NbtTag {
         }
     }
 }
+impl TryAsRef<dyn NbtCompatible> for NbtTag {
+    fn try_as_ref(&self) -> Option<&dyn NbtCompatible> {
+        use self::NbtTag::*;
+        Some(match self {
+            End => return None,
+            Byte(x) => x,
+            Short(x) => x,
+            Int(x) => x,
+            Long(x) => x,
+            Float(x) => x,
+            Double(x) => x,
+            ByteArray(x) => x,
+            String(x) => x,
+            List(x) => x,
+            Compound(x) => x,
+            IntArray(x) => x,
+            LongArray(x) => x
+        })
+    }
+}
+impl TryAsMut<dyn NbtCompatible> for NbtTag {
+    fn try_as_mut(&mut self) -> Option<&mut dyn NbtCompatible> {
+        use self::NbtTag::*;
+        Some(match self {
+            End => return None,
+            Byte(x) => x,
+            Short(x) => x,
+            Int(x) => x,
+            Long(x) => x,
+            Float(x) => x,
+            Double(x) => x,
+            ByteArray(x) => x,
+            String(x) => x,
+            List(x) => x,
+            Compound(x) => x,
+            IntArray(x) => x,
+            LongArray(x) => x
+        })
+    }
+}
 
 impl From<&str> for NbtTag {
     fn from(value: &str) -> Self {
@@ -277,37 +327,9 @@ impl From<bool> for NbtTag {
 
 impl Display for NbtTag {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        match self {
-            Self::End => Ok(()),
-            Self::Byte(x) => write!(f, "{x}b"),
-            Self::Short(x) => write!(f, "{x}s"),
-            Self::Int(x) => write!(f, "{x}"),
-            Self::Long(x) => write!(f, "{x}L"),
-            // using debug here matches Minecraft on whole numbers (3.0 instead of 3)
-            Self::Float(x) => write!(f, "{x:?}f"),
-            Self::Double(x) => write!(f, "{x:?}d"),
-            Self::ByteArray(arr) => write_listlike(f, "B; ", "B", arr.iter().map(|b| *b as i8)),
-            Self::String(s) => write!(f, "{}", escape_string_value(s)),
-            Self::List(list) => write_listlike(f, "", "", list),
-            Self::Compound(compound) => write!(f, "{compound}"),
-            Self::IntArray(arr) => write_listlike(f, "I; ", "", arr),
-            Self::LongArray(arr) => write_listlike(f, "L; ", "L", arr),
+        match self.try_as_ref() {
+            None => Ok(()),
+            Some(r) => write!(f, "{}", r.snbt_dyn())
         }
     }
-}
-
-fn write_listlike<T: Display, I: IntoIterator<Item = T>>(
-    f: &mut Formatter<'_>,
-    prefix: &'static str,
-    affix: &'static str,
-    arr: I,
-) -> fmt::Result {
-    write!(f, "[{prefix}")?;
-    join_formatted(
-        f,
-        ", ",
-        arr.into_iter()
-            .map(|x| move |f: &mut Formatter<'_>| write!(f, "{x}{affix}")),
-    )?;
-    write!(f, "]")
 }

@@ -1,3 +1,4 @@
+use crate::nbt::list::NbtList;
 use crate::nbt::utils::{escape_name, join_formatted};
 use crate::{error::Error, Nbt};
 use bytes::{Buf, BufMut, Bytes, BytesMut};
@@ -111,7 +112,7 @@ impl NbtCompound {
         self.get(name).and_then(|tag| tag.extract_string())
     }
 
-    pub fn get_list(&self, name: &str) -> Option<&Vec<NbtTag>> {
+    pub fn get_list(&self, name: &str) -> Option<&NbtList> {
         self.get(name).and_then(|tag| tag.extract_list())
     }
 

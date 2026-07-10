@@ -8,7 +8,9 @@ use std::io::{Cursor, Write};
 use std::ops::Deref;
 
 pub mod compound;
+pub mod list;
 pub mod tag;
+pub mod nbt_trait;
 pub mod utils;
 
 /// Represents the main NBT structure.
