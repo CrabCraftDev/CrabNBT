@@ -35,13 +35,33 @@ impl NbtTag {
 
     pub fn serialize(&self) -> Bytes {
         let mut bytes = BytesMut::new();
-        bytes.put_u8(self.get_type_id());
-        bytes.put(self.serialize_data());
+        self.serialize_into(&mut bytes);
         bytes.freeze()
+    }
+
+    pub fn serialize_into(&self, bytes: &mut BytesMut) {
+        bytes.put_u8(self.get_type_id());
+        self.serialize_data_into(bytes);
+    }
+
+    pub fn serialize_str_into(s: &str, bytes: &mut BytesMut) {
+        if s.is_empty() {
+            bytes.put_u16(0);
+            return;
+        }
+
+        let java_string = simd_cesu8::encode(s);
+        bytes.put_u16(java_string.len() as u16);
+        bytes.put_slice(&java_string);
     }
 
     pub fn serialize_data(&self) -> Bytes {
         let mut bytes = BytesMut::new();
+        self.serialize_data_into(&mut bytes);
+        bytes.freeze()
+    }
+
+    pub fn serialize_data_into(&self, bytes: &mut BytesMut) {
         match self {
             NbtTag::End => {}
             NbtTag::Byte(byte) => bytes.put_i8(*byte),
@@ -54,21 +74,15 @@ impl NbtTag {
                 bytes.put_i32(byte_array.len() as i32);
                 bytes.put_slice(byte_array);
             }
-            NbtTag::String(string) => {
-                let java_string = simd_cesu8::encode(string);
-                bytes.put_u16(java_string.len() as u16);
-                bytes.put_slice(&java_string);
-            }
+            NbtTag::String(string) => Self::serialize_str_into(string, bytes),
             NbtTag::List(list) => {
                 bytes.put_u8(list.first().unwrap_or(&NbtTag::End).get_type_id());
                 bytes.put_i32(list.len() as i32);
                 for nbt_tag in list {
-                    bytes.put(nbt_tag.serialize_data())
+                    nbt_tag.serialize_data_into(bytes);
                 }
             }
-            NbtTag::Compound(compound) => {
-                bytes.put(compound.serialize_content());
-            }
+            NbtTag::Compound(compound) => compound.serialize_content_into(bytes),
             NbtTag::IntArray(int_array) => {
                 bytes.put_i32(int_array.len() as i32);
                 for int in int_array {
@@ -82,7 +96,6 @@ impl NbtTag {
                 }
             }
         }
-        bytes.freeze()
     }
 
     pub fn deserialize(bytes: &mut impl Buf) -> Result<NbtTag, Error> {

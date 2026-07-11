@@ -49,13 +49,17 @@ impl NbtCompound {
 
     pub fn serialize_content(&self) -> Bytes {
         let mut bytes = BytesMut::new();
+        self.serialize_content_into(&mut bytes);
+        bytes.freeze()
+    }
+
+    pub fn serialize_content_into(&self, bytes: &mut BytesMut) {
         for (name, tag) in &self.child_tags {
             bytes.put_u8(tag.get_type_id());
-            bytes.put(NbtTag::String(name.clone()).serialize_data());
-            bytes.put(tag.serialize_data());
+            NbtTag::serialize_str_into(name, bytes);
+            tag.serialize_data_into(bytes);
         }
         bytes.put_u8(END_ID);
-        bytes.freeze()
     }
 
     pub fn serialize_content_to_writer<W: Write>(&self, mut writer: W) -> Result<(), Error> {
