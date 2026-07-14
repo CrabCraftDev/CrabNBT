@@ -176,7 +176,7 @@ impl ser::Serializer for &mut Serializer {
             return Ok(());
         }
 
-        NbtTag::String(v.to_string()).serialize_data_into(&mut self.output);
+        NbtTag::serialize_str_into(v, &mut self.output);
         Ok(())
     }
 

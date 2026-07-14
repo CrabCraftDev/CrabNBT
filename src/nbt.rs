@@ -90,8 +90,7 @@ impl Nbt {
     /// Used in [Network NBT](https://wiki.vg/NBT#Network_NBT_(Java_Edition)).
     pub fn write_unnamed(&self) -> Vec<u8> {
         let mut bytes = Vec::new();
-        bytes.push(COMPOUND_ID);
-        self.root_tag.serialize_content_into(&mut bytes);
+        self.write_unnamed_into(&mut bytes);
         bytes
     }
 
