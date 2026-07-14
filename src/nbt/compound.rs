@@ -1,4 +1,4 @@
-use crate::nbt::utils::{escape_name, join_formatted};
+use crate::nbt::utils::{escape_name, join_formatted, serialize_str_into};
 use crate::{error::Error, Nbt};
 use bytes::{Buf, BufMut, Bytes, BytesMut};
 use crab_nbt::nbt::tag::NbtTag;
@@ -56,7 +56,7 @@ impl NbtCompound {
     pub fn serialize_content_into(&self, bytes: &mut BytesMut) {
         for (name, tag) in &self.child_tags {
             bytes.put_u8(tag.get_type_id());
-            NbtTag::serialize_str_into(name, bytes);
+            serialize_str_into(name, bytes);
             tag.serialize_data_into(bytes);
         }
         bytes.put_u8(END_ID);

@@ -1,7 +1,6 @@
 use crate::error::Error;
 use bytes::{Buf, BufMut, Bytes, BytesMut};
 use crab_nbt::nbt::compound::NbtCompound;
-use crab_nbt::nbt::tag::NbtTag;
 use crab_nbt::nbt::utils::*;
 use std::fmt::{self, Display, Formatter};
 use std::io::{Cursor, Write};
@@ -71,7 +70,7 @@ impl Nbt {
 
     pub fn write_into(&self, bytes: &mut BytesMut) {
         bytes.put_u8(COMPOUND_ID);
-        NbtTag::serialize_str_into(&self.name, bytes);
+        serialize_str_into(&self.name, bytes);
         self.root_tag.serialize_content_into(bytes);
     }
 
