@@ -51,9 +51,13 @@ impl NbtTag {
     }
 
     pub fn serialize_str_into(s: &str, bytes: &mut Vec<u8>) {
-        let java_string = simd_cesu8::encode(s);
-        bytes.extend_from_slice(&(java_string.len() as u16).to_be_bytes());
-        bytes.extend_from_slice(&java_string[..]);
+        bytes.extend_from_slice(&[0, 0]);
+        let len_before = bytes.len();
+        simd_cesu8::encode_into(s, bytes);
+        let len_after = bytes.len();
+        let len_written = &((len_after - len_before) as u16).to_be_bytes();
+        bytes[len_before - 2] = len_written[0];
+        bytes[len_before - 1] = len_written[1];
     }
 
     pub fn serialize_data_into(&self, bytes: &mut Vec<u8>) {
@@ -79,9 +83,7 @@ impl NbtTag {
                     nbt_tag.serialize_data_into(bytes);
                 }
             }
-            NbtTag::Compound(compound) => {
-                compound.serialize_content_into(bytes);
-            }
+            NbtTag::Compound(compound) => compound.serialize_content_into(bytes),
             NbtTag::IntArray(int_array) => {
                 bytes.extend_from_slice(&(int_array.len() as i32).to_be_bytes());
                 for int in int_array {

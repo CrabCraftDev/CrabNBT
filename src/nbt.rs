@@ -71,10 +71,14 @@ impl Nbt {
 
     pub fn write(&self) -> Vec<u8> {
         let mut bytes = Vec::new();
-        bytes.push(COMPOUND_ID);
-        NbtTag::String(self.name.to_string()).serialize_data_into(&mut bytes);
-        self.root_tag.serialize_content_into(&mut bytes);
+        self.write_into(&mut bytes);
         bytes
+    }
+
+    pub fn write_into(&self, bytes: &mut Vec<u8>) {
+        bytes.push(COMPOUND_ID);
+        NbtTag::serialize_str_into(&self.name, bytes);
+        self.root_tag.serialize_content_into(bytes);
     }
 
     pub fn write_to_writer<W: Write>(&self, mut writer: W) -> Result<(), Error> {
@@ -89,6 +93,11 @@ impl Nbt {
         bytes.push(COMPOUND_ID);
         self.root_tag.serialize_content_into(&mut bytes);
         bytes
+    }
+
+    pub fn write_unnamed_into(&self, bytes: &mut Vec<u8>) {
+        bytes.push(COMPOUND_ID);
+        self.root_tag.serialize_content_into(bytes);
     }
 
     pub fn write_unnamed_to_writer<W: Write>(&self, mut writer: W) -> Result<(), Error> {
