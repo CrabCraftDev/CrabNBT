@@ -69,6 +69,7 @@ impl Nbt {
     }
 
     pub fn write_into(&self, bytes: &mut BytesMut) {
+        bytes.reserve(1 + 2 + self.name.len() + self.root_tag.size_hint());
         bytes.put_u8(COMPOUND_ID);
         serialize_str_into(&self.name, bytes);
         self.root_tag.serialize_content_into(bytes);
@@ -88,6 +89,7 @@ impl Nbt {
     }
 
     pub fn write_unnamed_into(&self, bytes: &mut BytesMut) {
+        bytes.reserve(1 + self.root_tag.size_hint());
         bytes.put_u8(COMPOUND_ID);
         self.root_tag.serialize_content_into(bytes);
     }

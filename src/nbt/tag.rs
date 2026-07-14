@@ -136,6 +136,27 @@ impl NbtTag {
         }
     }
 
+    pub fn size_hint(&self) -> usize {
+        match self {
+            NbtTag::End => 1,
+            NbtTag::Byte(_) => 1,
+            NbtTag::Short(_) => 2,
+            NbtTag::Int(_) => 4,
+            NbtTag::Long(_) => 8,
+            NbtTag::Float(_) => 4,
+            NbtTag::Double(_) => 8,
+            NbtTag::ByteArray(bytes) => 4 + bytes.len(),
+            NbtTag::IntArray(items) => 4 + items.len() * 4,
+            NbtTag::LongArray(items) => 4 + items.len() * 8,
+            NbtTag::List(nbt_tags) => nbt_tags
+                .iter()
+                .map(NbtTag::size_hint)
+                .fold(5, std::ops::Add::add),
+            NbtTag::String(s) => 2 + s.len(),
+            NbtTag::Compound(compound) => compound.size_hint(),
+        }
+    }
+
     pub fn deserialize(bytes: &mut impl Buf) -> Result<NbtTag, Error> {
         let tag_id = bytes.try_get_u8()?;
         Self::deserialize_data(bytes, tag_id)
