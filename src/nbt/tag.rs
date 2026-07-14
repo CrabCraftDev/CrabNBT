@@ -138,7 +138,7 @@ impl NbtTag {
 
     pub fn size_hint(&self) -> usize {
         match self {
-            NbtTag::End => 1,
+            NbtTag::End => 0,
             NbtTag::Byte(_) => 1,
             NbtTag::Short(_) => 2,
             NbtTag::Int(_) => 4,
