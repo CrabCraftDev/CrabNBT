@@ -31,12 +31,11 @@ impl Serializer {
         match &mut self.state {
             State::Named(name) | State::Array { name, .. } => {
                 self.output.push(tag);
-                self.output
-                    .extend(NbtTag::String(name.clone()).serialize_data());
+                NbtTag::serialize_str_into(name, &mut self.output);
             }
             State::FirstListElement { len } => {
                 self.output.push(tag);
-                self.output.extend(len.to_be_bytes().iter());
+                self.output.extend_from_slice(&len.to_be_bytes());
             }
             State::MapKey => {
                 if tag != STRING_ID {
@@ -116,25 +115,25 @@ impl ser::Serializer for &mut Serializer {
 
     fn serialize_i8(self, v: i8) -> Result<()> {
         self.parse_state(BYTE_ID)?;
-        self.output.extend(v.to_be_bytes());
+        self.output.extend_from_slice(&v.to_be_bytes());
         Ok(())
     }
 
     fn serialize_i16(self, v: i16) -> Result<()> {
         self.parse_state(SHORT_ID)?;
-        self.output.extend(v.to_be_bytes());
+        self.output.extend_from_slice(&v.to_be_bytes());
         Ok(())
     }
 
     fn serialize_i32(self, v: i32) -> Result<()> {
         self.parse_state(INT_ID)?;
-        self.output.extend(v.to_be_bytes());
+        self.output.extend_from_slice(&v.to_be_bytes());
         Ok(())
     }
 
     fn serialize_i64(self, v: i64) -> Result<()> {
         self.parse_state(LONG_ID)?;
-        self.output.extend(v.to_be_bytes());
+        self.output.extend_from_slice(&v.to_be_bytes());
         Ok(())
     }
 
@@ -156,13 +155,13 @@ impl ser::Serializer for &mut Serializer {
 
     fn serialize_f32(self, v: f32) -> Result<()> {
         self.parse_state(FLOAT_ID)?;
-        self.output.extend(v.to_be_bytes());
+        self.output.extend_from_slice(&v.to_be_bytes());
         Ok(())
     }
 
     fn serialize_f64(self, v: f64) -> Result<()> {
         self.parse_state(DOUBLE_ID)?;
-        self.output.extend(v.to_be_bytes());
+        self.output.extend_from_slice(&v.to_be_bytes());
         Ok(())
     }
 
@@ -177,8 +176,7 @@ impl ser::Serializer for &mut Serializer {
             return Ok(());
         }
 
-        self.output
-            .extend(NbtTag::String(v.to_string()).serialize_data());
+        NbtTag::serialize_str_into(v, &mut self.output);
         Ok(())
     }
 
@@ -273,7 +271,8 @@ impl ser::Serializer for &mut Serializer {
                     }
                 };
                 self.parse_state(id)?;
-                self.output.extend((len.unwrap() as i32).to_be_bytes());
+                self.output
+                    .extend_from_slice(&(len.unwrap() as i32).to_be_bytes());
                 self.state = State::ListElement;
             }
             _ => {
@@ -282,7 +281,7 @@ impl ser::Serializer for &mut Serializer {
                 // If the list is empty, FirstListElement is never parsed
                 if len.unwrap() == 0 {
                     self.output.push(END_ID);
-                    self.output.extend(0_i32.to_be_bytes());
+                    self.output.extend_from_slice(&0_i32.to_be_bytes());
                 }
 
                 self.state = State::FirstListElement {
@@ -331,16 +330,14 @@ impl ser::Serializer for &mut Serializer {
         match &mut self.state {
             State::Root(root_name) => {
                 if let Some(root_name) = root_name {
-                    self.output
-                        .extend(NbtTag::String(root_name.clone()).serialize_data());
+                    NbtTag::serialize_str_into(root_name, &mut self.output);
                 }
             }
             State::Named(string) => {
-                self.output
-                    .extend(NbtTag::String(string.clone()).serialize_data());
+                NbtTag::serialize_str_into(string, &mut self.output);
             }
             State::FirstListElement { len } => {
-                self.output.extend(len.to_be_bytes());
+                self.output.extend_from_slice(&len.to_be_bytes());
             }
             _ => {
                 unimplemented!()

@@ -35,12 +35,20 @@ pub(crate) fn read_array<T, const N: usize, F>(
 where
     F: Fn([u8; N]) -> T,
 {
-    Ok(bytes
-        .read(len * N)?
-        .chunks_exact(N)
-        .map(|chunk| {
-            let arr: [u8; N] = chunk.try_into().expect("chunk size mismatch");
-            from_be(arr)
-        })
-        .collect())
+    let chunks: &[[u8; N]] = bytes.read(len * N)?.as_chunks::<N>().0;
+    if chunks.len() != len {
+        core::hint::cold_path();
+        panic!(
+            "Unexpectedly got {} chunks instead of {} chunks",
+            chunks.len(),
+            len
+        );
+    }
+
+    let mut out = Vec::with_capacity(len);
+    for chunk in chunks {
+        out.push(from_be(*chunk));
+    }
+
+    Ok(out)
 }

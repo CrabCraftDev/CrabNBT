@@ -35,54 +35,93 @@ impl NbtTag {
 
     pub fn serialize(&self) -> Vec<u8> {
         let mut bytes = Vec::new();
-        bytes.push(self.get_type_id());
-        bytes.extend(self.serialize_data());
+        self.serialize_into(&mut bytes);
         bytes
+    }
+
+    pub fn serialize_into(&self, bytes: &mut Vec<u8>) {
+        bytes.push(self.get_type_id());
+        self.serialize_data_into(bytes);
     }
 
     pub fn serialize_data(&self) -> Vec<u8> {
         let mut bytes = Vec::new();
+        self.serialize_data_into(&mut bytes);
+        bytes
+    }
+
+    pub fn serialize_str_into(s: &str, bytes: &mut Vec<u8>) {
+        bytes.extend_from_slice(&[0, 0]);
+        let len_before = bytes.len();
+        simd_cesu8::encode_into(s, bytes);
+        let len_after = bytes.len();
+        let len_written = &((len_after - len_before) as u16).to_be_bytes();
+        bytes[len_before - 2] = len_written[0];
+        bytes[len_before - 1] = len_written[1];
+    }
+
+    pub fn serialize_data_into(&self, bytes: &mut Vec<u8>) {
         match self {
             NbtTag::End => {}
-            NbtTag::Byte(byte) => bytes.extend(byte.to_be_bytes()),
-            NbtTag::Short(short) => bytes.extend(short.to_be_bytes()),
-            NbtTag::Int(int) => bytes.extend(int.to_be_bytes()),
-            NbtTag::Long(long) => bytes.extend(long.to_be_bytes()),
-            NbtTag::Float(float) => bytes.extend(float.to_be_bytes()),
-            NbtTag::Double(double) => bytes.extend(double.to_be_bytes()),
+            NbtTag::Byte(byte) => bytes.extend_from_slice(&byte.to_be_bytes()),
+            NbtTag::Short(short) => bytes.extend_from_slice(&short.to_be_bytes()),
+            NbtTag::Int(int) => bytes.extend_from_slice(&int.to_be_bytes()),
+            NbtTag::Long(long) => bytes.extend_from_slice(&long.to_be_bytes()),
+            NbtTag::Float(float) => bytes.extend_from_slice(&float.to_be_bytes()),
+            NbtTag::Double(double) => bytes.extend_from_slice(&double.to_be_bytes()),
             NbtTag::ByteArray(byte_array) => {
-                bytes.extend((byte_array.len() as i32).to_be_bytes());
-                bytes.extend(byte_array);
+                bytes.extend_from_slice(&(byte_array.len() as i32).to_be_bytes());
+                bytes.extend_from_slice(byte_array);
             }
-            NbtTag::String(string) => {
-                let java_string = simd_cesu8::encode(string);
-                bytes.extend((java_string.len() as u16).to_be_bytes());
-                bytes.extend_from_slice(&java_string[..]);
-            }
+            NbtTag::String(string) => Self::serialize_str_into(string, bytes),
             NbtTag::List(list) => {
-                bytes.extend((list.first().unwrap_or(&NbtTag::End).get_type_id()).to_be_bytes());
-                bytes.extend((list.len() as i32).to_be_bytes());
+                bytes.extend_from_slice(
+                    &(list.first().unwrap_or(&NbtTag::End).get_type_id()).to_be_bytes(),
+                );
+                bytes.extend_from_slice(&(list.len() as i32).to_be_bytes());
                 for nbt_tag in list {
-                    bytes.extend(nbt_tag.serialize_data())
+                    nbt_tag.serialize_data_into(bytes);
                 }
             }
-            NbtTag::Compound(compound) => {
-                bytes.extend(compound.serialize_content());
-            }
+            NbtTag::Compound(compound) => compound.serialize_content_into(bytes),
             NbtTag::IntArray(int_array) => {
-                bytes.extend((int_array.len() as i32).to_be_bytes());
+                bytes.extend_from_slice(&(int_array.len() as i32).to_be_bytes());
                 for int in int_array {
-                    bytes.extend(int.to_be_bytes())
+                    bytes.extend_from_slice(&int.to_be_bytes())
                 }
             }
             NbtTag::LongArray(long_array) => {
-                bytes.extend((long_array.len() as i32).to_be_bytes());
+                bytes.extend_from_slice(&(long_array.len() as i32).to_be_bytes());
                 for long in long_array {
-                    bytes.extend(long.to_be_bytes())
+                    bytes.extend_from_slice(&long.to_be_bytes())
                 }
             }
         }
-        bytes
+    }
+
+    pub fn size_hint(&self) -> (usize, usize) {
+        fn same(v: usize) -> (usize, usize) {
+            (v, v)
+        }
+
+        match self {
+            NbtTag::End => same(1),
+            NbtTag::Byte(_) => same(1),
+            NbtTag::Short(_) => same(2),
+            NbtTag::Int(_) => same(4),
+            NbtTag::Long(_) => same(8),
+            NbtTag::Float(_) => same(4),
+            NbtTag::Double(_) => same(8),
+            NbtTag::ByteArray(bytes) => same(4 + bytes.len()),
+            NbtTag::IntArray(items) => same(4 + items.len() * 4),
+            NbtTag::LongArray(items) => same(4 + items.len() * 8),
+            NbtTag::List(nbt_tags) => nbt_tags
+                .iter()
+                .map(NbtTag::size_hint)
+                .fold(same(5), |a, b| (a.0 + b.0, a.1 + b.1)),
+            NbtTag::String(s) => (2 + s.len(), 2 + s.len() * 2),
+            NbtTag::Compound(compound) => compound.size_hint(),
+        }
     }
 
     pub fn deserialize(bytes: &[u8]) -> Result<NbtTag, Error> {

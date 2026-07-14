@@ -19,7 +19,7 @@ serde = ["dep:serde"]
 nightly = ["simd_cesu8/nightly"]
 
 [dependencies]
-simd_cesu8 = "1.0.1"
+simd_cesu8 = "1.2.0"
 derive_more = { version = "2.0.1", features = ["into", "from"] }
 thiserror = "2.0.11"
 serde = { version = "1.0.218", optional = true, features = ["derive"] }
