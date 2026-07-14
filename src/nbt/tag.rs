@@ -99,6 +99,31 @@ impl NbtTag {
         }
     }
 
+    pub fn size_hint(&self) -> (usize, usize) {
+        fn same(v: usize) -> (usize, usize) {
+            (v, v)
+        }
+
+        match self {
+            NbtTag::End => same(1),
+            NbtTag::Byte(_) => same(1),
+            NbtTag::Short(_) => same(2),
+            NbtTag::Int(_) => same(4),
+            NbtTag::Long(_) => same(8),
+            NbtTag::Float(_) => same(4),
+            NbtTag::Double(_) => same(8),
+            NbtTag::ByteArray(bytes) => same(4 + bytes.len()),
+            NbtTag::IntArray(items) => same(4 + items.len() * 4),
+            NbtTag::LongArray(items) => same(4 + items.len() * 8),
+            NbtTag::List(nbt_tags) => nbt_tags
+                .iter()
+                .map(NbtTag::size_hint)
+                .fold(same(5), |a, b| (a.0 + b.0, a.1 + b.1)),
+            NbtTag::String(s) => (2 + s.len(), 2 + s.len() * 2),
+            NbtTag::Compound(compound) => compound.size_hint(),
+        }
+    }
+
     pub fn deserialize(bytes: &[u8]) -> Result<NbtTag, Error> {
         Self::deserialize_internal(&mut BinarySliceCursor::new(bytes))
     }

@@ -76,6 +76,7 @@ impl Nbt {
     }
 
     pub fn write_into(&self, bytes: &mut Vec<u8>) {
+        bytes.reserve(1 + 2 + self.name.len() + self.root_tag.size_hint().0);
         bytes.push(COMPOUND_ID);
         NbtTag::serialize_str_into(&self.name, bytes);
         self.root_tag.serialize_content_into(bytes);
@@ -95,6 +96,7 @@ impl Nbt {
     }
 
     pub fn write_unnamed_into(&self, bytes: &mut Vec<u8>) {
+        bytes.reserve(1 + self.root_tag.size_hint().0);
         bytes.push(COMPOUND_ID);
         self.root_tag.serialize_content_into(bytes);
     }

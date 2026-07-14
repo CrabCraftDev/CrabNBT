@@ -65,6 +65,16 @@ impl NbtCompound {
         bytes.push(END_ID);
     }
 
+    pub fn size_hint(&self) -> (usize, usize) {
+        self.child_tags
+            .iter()
+            .map(|(s, t)| {
+                let hint = NbtTag::size_hint(t);
+                (1 + 2 + s.len() + hint.0, 1 + 2 + s.len() * 2 + hint.1)
+            })
+            .fold((1, 1), |a, b| (a.0 + b.0, a.1 + b.1))
+    }
+
     pub fn serialize_content_to_writer<W: Write>(&self, mut writer: W) -> Result<(), Error> {
         writer.write_all(&self.serialize_content())?;
         Ok(())
