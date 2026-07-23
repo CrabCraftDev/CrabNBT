@@ -63,13 +63,16 @@ impl NbtCompound {
     }
 
     pub fn size_hint(&self) -> usize {
+        const SIZE_BYTE: usize = i8::BITS as usize / 8;
+        const SIZE_SHORT: usize = i16::BITS as usize / 8;
+
         self.child_tags
             .iter()
             .map(|(s, t)| {
                 let hint = NbtTag::size_hint(t);
-                1 + 2 + s.len() + hint
+                SIZE_BYTE + SIZE_SHORT + s.len() + hint
             })
-            .fold(1, std::ops::Add::add)
+            .fold(SIZE_BYTE, std::ops::Add::add)
     }
 
     pub fn serialize_content_to_writer<W: Write>(&self, mut writer: W) -> Result<(), Error> {

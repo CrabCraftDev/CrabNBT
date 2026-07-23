@@ -137,22 +137,27 @@ impl NbtTag {
     }
 
     pub fn size_hint(&self) -> usize {
+        const SIZE_BYTE: usize = i8::BITS as usize / 8;
+        const SIZE_SHORT: usize = i16::BITS as usize / 8;
+        const SIZE_INT: usize = i32::BITS as usize / 8;
+        const SIZE_LONG: usize = i64::BITS as usize / 8;
+
         match self {
             NbtTag::End => 0,
-            NbtTag::Byte(_) => 1,
-            NbtTag::Short(_) => 2,
-            NbtTag::Int(_) => 4,
-            NbtTag::Long(_) => 8,
+            NbtTag::Byte(_) => SIZE_BYTE,
+            NbtTag::Short(_) => SIZE_SHORT,
+            NbtTag::Int(_) => SIZE_INT,
+            NbtTag::Long(_) => SIZE_LONG,
             NbtTag::Float(_) => 4,
             NbtTag::Double(_) => 8,
-            NbtTag::ByteArray(bytes) => 4 + bytes.len(),
-            NbtTag::IntArray(items) => 4 + items.len() * 4,
-            NbtTag::LongArray(items) => 4 + items.len() * 8,
+            NbtTag::ByteArray(bytes) => SIZE_INT + bytes.len(),
+            NbtTag::IntArray(items) => SIZE_INT + items.len() * SIZE_INT,
+            NbtTag::LongArray(items) => SIZE_INT + items.len() * SIZE_LONG,
             NbtTag::List(nbt_tags) => nbt_tags
                 .iter()
                 .map(NbtTag::size_hint)
-                .fold(5, std::ops::Add::add),
-            NbtTag::String(s) => 2 + s.len(),
+                .fold(SIZE_BYTE + SIZE_INT, std::ops::Add::add),
+            NbtTag::String(s) => SIZE_SHORT + s.len(),
             NbtTag::Compound(compound) => compound.size_hint(),
         }
     }
