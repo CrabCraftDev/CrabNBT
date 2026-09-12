@@ -209,7 +209,7 @@ impl NbtList {
             bytes.put_u8(T::get_id());
             bytes.put_i32(inner.len() as i32);
             for element in inner.iter() {
-                element.serialize_data(bytes);
+                element.serialize_content_into(bytes);
             }
         }
     }
@@ -307,7 +307,7 @@ impl PrivateNbtCompatible for NbtList {
         }
     }
 
-    fn serialize_data(&self, bytes: &mut impl bytes::BufMut)
+    fn serialize_content_into(&self, bytes: &mut impl bytes::BufMut)
     where
         Self: Sized,
     {

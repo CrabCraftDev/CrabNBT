@@ -127,7 +127,7 @@ impl NbtTag {
 
     pub fn serialize_data_into(&self, bytes: &mut impl BufMut) {
         call_uniform!(
-            (self.serialize_data(bytes)),
+            (self.serialize_content_into(bytes)),
             () // End has no data, so serialization is noop
         );
     }

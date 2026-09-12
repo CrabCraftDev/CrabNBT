@@ -55,15 +55,6 @@ impl NbtCompound {
         bytes.freeze()
     }
 
-    pub fn serialize_content_into(&self, bytes: &mut impl BufMut) {
-        for (name, tag) in &self.child_tags {
-            bytes.put_u8(tag.get_type_id());
-            serialize_str_into(name, bytes);
-            tag.serialize_data_into(bytes);
-        }
-        bytes.put_u8(END_ID);
-    }
-
     pub fn serialize_content_to_writer<W: Write>(&self, mut writer: W) -> Result<(), Error> {
         writer.write_all(&self.serialize_content())?;
         Ok(())
@@ -196,11 +187,16 @@ impl PrivateNbtCompatible for NbtCompound {
         NbtCompound::deserialize_content(bytes)
     }
 
-    fn serialize_data(&self, bytes: &mut impl BufMut)
+    fn serialize_content_into(&self, bytes: &mut impl BufMut)
     where
         Self: Sized,
     {
-        self.serialize_content_into(bytes);
+        for (name, tag) in &self.child_tags {
+            bytes.put_u8(tag.get_type_id());
+            serialize_str_into(name, bytes);
+            tag.serialize_data_into(bytes);
+        }
+        bytes.put_u8(END_ID);
     }
 
     fn get_id() -> u8

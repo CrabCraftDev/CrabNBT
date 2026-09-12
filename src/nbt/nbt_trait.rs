@@ -25,7 +25,7 @@ pub(crate) trait PrivateNbtCompatible: AsAny {
     where
         Self: Sized;
     /// Serialize self into bytes, excluding the tag id
-    fn serialize_data(&self, bytes: &mut impl BufMut)
+    fn serialize_content_into(&self, bytes: &mut impl BufMut)
     where
         Self: Sized;
 
@@ -89,7 +89,7 @@ impl PrivateNbtCompatible for i8 {
         Ok(bytes.try_get_i8()?)
     }
 
-    fn serialize_data(&self, bytes: &mut impl BufMut)
+    fn serialize_content_into(&self, bytes: &mut impl BufMut)
     where
         Self: Sized,
     {
@@ -115,7 +115,7 @@ impl PrivateNbtCompatible for i16 {
         Ok(bytes.try_get_i16()?)
     }
 
-    fn serialize_data(&self, bytes: &mut impl BufMut)
+    fn serialize_content_into(&self, bytes: &mut impl BufMut)
     where
         Self: Sized,
     {
@@ -141,7 +141,7 @@ impl PrivateNbtCompatible for i32 {
         Ok(bytes.try_get_i32()?)
     }
 
-    fn serialize_data(&self, bytes: &mut impl BufMut)
+    fn serialize_content_into(&self, bytes: &mut impl BufMut)
     where
         Self: Sized,
     {
@@ -167,7 +167,7 @@ impl PrivateNbtCompatible for i64 {
         Ok(bytes.try_get_i64()?)
     }
 
-    fn serialize_data(&self, bytes: &mut impl BufMut)
+    fn serialize_content_into(&self, bytes: &mut impl BufMut)
     where
         Self: Sized,
     {
@@ -194,7 +194,7 @@ impl PrivateNbtCompatible for f32 {
         Ok(bytes.try_get_f32()?)
     }
 
-    fn serialize_data(&self, bytes: &mut impl BufMut)
+    fn serialize_content_into(&self, bytes: &mut impl BufMut)
     where
         Self: Sized,
     {
@@ -221,7 +221,7 @@ impl PrivateNbtCompatible for f64 {
         Ok(bytes.try_get_f64()?)
     }
 
-    fn serialize_data(&self, bytes: &mut impl BufMut)
+    fn serialize_content_into(&self, bytes: &mut impl BufMut)
     where
         Self: Sized,
     {
@@ -249,7 +249,7 @@ impl PrivateNbtCompatible for Bytes {
         Ok(byte_array)
     }
 
-    fn serialize_data(&self, bytes: &mut impl BufMut)
+    fn serialize_content_into(&self, bytes: &mut impl BufMut)
     where
         Self: Sized,
     {
@@ -276,7 +276,7 @@ impl PrivateNbtCompatible for String {
         Ok(get_nbt_string(bytes).unwrap())
     }
 
-    fn serialize_data(&self, bytes: &mut impl BufMut)
+    fn serialize_content_into(&self, bytes: &mut impl BufMut)
     where
         Self: Sized,
     {
@@ -308,7 +308,7 @@ impl PrivateNbtCompatible for Vec<i32> {
         Ok(numbers)
     }
 
-    fn serialize_data(&self, bytes: &mut impl BufMut)
+    fn serialize_content_into(&self, bytes: &mut impl BufMut)
     where
         Self: Sized,
     {
@@ -341,7 +341,7 @@ impl PrivateNbtCompatible for Vec<i64> {
         Ok(numbers)
     }
 
-    fn serialize_data(&self, bytes: &mut impl BufMut)
+    fn serialize_content_into(&self, bytes: &mut impl BufMut)
     where
         Self: Sized,
     {

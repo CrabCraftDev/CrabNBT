@@ -1,4 +1,5 @@
 use crate::error::Error;
+use crate::nbt::nbt_trait::PrivateNbtCompatible as _;
 use bytes::{Buf, BufMut, Bytes, BytesMut};
 use crab_nbt::nbt::compound::NbtCompound;
 use crab_nbt::nbt::utils::*;
