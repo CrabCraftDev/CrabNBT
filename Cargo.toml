@@ -49,6 +49,10 @@ name = "write"
 harness = false
 
 [[bench]]
+name = "snbt"
+harness = false
+
+[[bench]]
 name = "gungraun"
 bench = false
 harness = false
