@@ -82,7 +82,7 @@ macro_rules! nbt_list_call_uniform {
 #[try_into(owned, ref, ref_mut)]
 #[repr(u8)]
 pub enum NbtList {
-    #[default]
+    #[default] #[try_into(ignore)]
     End = END_ID,
     Byte(Vec<i8>) = BYTE_ID,
     Short(Vec<i16>) = SHORT_ID,
