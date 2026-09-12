@@ -22,59 +22,90 @@ use crate::{
 
 /// Helper macro to generate match cases to run code on the contents of an [NbtList].
 ///
-/// Has two formats: Expression mode and Method mode.
+/// Has three formats: Expression mode and Method mode, Free mode.
 /// - Expression mode is the most powerful, and can be used to execute
 ///   any expression on the content of the list, potentially returning a value.
 /// - Method mode is specifically for executing [Vec] methods
 ///   (and methods of any type [Vec] [std::ops::Deref]s to).
 ///
 /// ```
-/// use crab_nbt::NbtList;
-/// use crab_nbt::nbt_list_call_uniform;
+/// use crab_nbt::{
+///     NbtList,
+///     NbtTag,
+///     nbt_list_call_uniform,
+///     NbtCompatible as _
+/// };
 /// let mut nbt_list = NbtList::Short(vec![1,2,3]);
 /// // Expression mode
 /// nbt_list_call_uniform!(
 ///     // may be any expression resulting in an NbtList or a borrowed form of it.
 ///     &mut nbt_list,
-///     content,
-///     content.push(Default::default()),
-///     panic!("Cannot push default to an empty list")
+///     // Runs for every variant (except End)
+///     (content) => content.push(Default::default()),
+///     // case for NbtList::End (should be the default operation)
+///     () => panic!("Cannot push default to an empty list")
 /// );
 /// assert_eq!(nbt_list, NbtList::Short(vec![1,2,3,0]));
 ///
 /// // Method mode
 /// // (note that this particular use case is already supported via NbtList::len)
 /// assert_eq!(
-///     nbt_list_call_uniform!((nbt_list.len()), 0),
+///     // calls Vec::len() on the contents or returns 0 if NbtList::End
+///     nbt_list_call_uniform!(((&nbt_list).len()) | 0),
 ///     4
 /// );
+/// 
+/// // Free mode
+/// let sum = nbt_list_call_uniform!(
+///     (&nbt_list) {
+///         (Byte|Short|Int|Long|Float|Double)(contents) => {
+///             let mut iter = contents.iter().copied();
+///             let mut sum = iter.next().unwrap_or_default();
+///             for x in iter {
+///                 sum += x;
+///             }
+///             sum.into_tag()
+///         },
+///         (String)(contents) => {
+///             let mut s = String::new();
+///             s.extend(contents.iter().map(|s| s as &str));
+///             s.into_tag()
+///         },
+///         x => panic!("Can't sum a non-number, non-string type")
+///     }
+/// );
+/// assert_eq!(sum, NbtTag::Short(6))
 /// ```
 #[macro_export]
 macro_rules! nbt_list_call_uniform {
-    ($self:expr,$content:ident, $expression:expr, $end_case:expr) => {
-        {
-            match $self {
-                // Manual reference for each value to avoid namespace pollution when using the macro
-                // If we used a "use" statement for this, $expression and $end_case would inherit that context,
-                // potentially causing undesirable type collisions
-                $crate::NbtList::End => $end_case,
-                $crate::NbtList::Byte($content) => $expression,
-                $crate::NbtList::Short($content) => $expression,
-                $crate::NbtList::Int($content) => $expression,
-                $crate::NbtList::Long($content) => $expression,
-                $crate::NbtList::Float($content) => $expression,
-                $crate::NbtList::Double($content) => $expression,
-                $crate::NbtList::ByteArray($content) => $expression,
-                $crate::NbtList::String($content) => $expression,
-                $crate::NbtList::List($content) => $expression,
-                $crate::NbtList::Compound($content) => $expression,
-                $crate::NbtList::IntArray($content) => $expression,
-                $crate::NbtList::LongArray($content) => $expression,
-            }
+    (($self:expr) {
+        $(($($variant:ident)|+)($content:pat) => $expression:expr),+
+        $(,$wildcard_content:ident => $wildcard_expression:expr)?
+        $(,() => $end_case:expr)?
+    }) => {
+        match $self {
+            $($(
+                $crate::NbtList::$variant($content) => $expression
+            ),+),+
+            $(,$crate::NbtList::End => $end_case)?
+            $(,$wildcard_content => $wildcard_expression)?
         }
     };
-    (($self:ident.$($method:tt)+), $end_case:expr) => {
-        nbt_list_call_uniform!($self,x, x.$($method)*, $end_case)
+    ($self:expr, ($content:ident) => $expression:expr, () => $end_case:expr) => {
+        nbt_list_call_uniform!(($self) {
+            (Byte|Short|Int|Long|Float|Double|ByteArray|String|List|Compound|IntArray|LongArray)($content) => $expression,
+            () => $end_case
+        })
+    };
+    ((($self:expr).$($method:tt)+) | $end_case:expr) => {
+        nbt_list_call_uniform!(
+            $self,
+            (x) => x.$($method)*,
+            () => $end_case
+        )
+    };
+    (($self:ident.$($method:tt)+) | $end_case:expr) => {
+        nbt_list_call_uniform!((($self).$($method)+) | $end_case)
     };
 }
 
@@ -82,7 +113,8 @@ macro_rules! nbt_list_call_uniform {
 #[try_into(owned, ref, ref_mut)]
 #[repr(u8)]
 pub enum NbtList {
-    #[default] #[try_into(ignore)]
+    #[default]
+    #[try_into(ignore)]
     End = END_ID,
     Byte(Vec<i8>) = BYTE_ID,
     Short(Vec<i16>) = SHORT_ID,
@@ -118,14 +150,11 @@ impl NbtList {
     }
 
     pub fn get(&self, index: usize) -> Option<&dyn NbtCompatible> {
-        nbt_list_call_uniform!((self.get(index).map(|x| x as &dyn NbtCompatible)), None)
+        nbt_list_call_uniform!((self.get(index).map(|x| x as &dyn NbtCompatible)) | None)
     }
 
     pub fn get_mut(&mut self, index: usize) -> Option<&mut dyn NbtCompatible> {
-        nbt_list_call_uniform!(
-            (self.get_mut(index).map(|x| x as &mut dyn NbtCompatible)),
-            None
-        )
+        nbt_list_call_uniform!((self.get_mut(index).map(|x| x as &mut dyn NbtCompatible)) | None)
     }
 
     pub fn iter(&self) -> Iter<'_> {
@@ -144,14 +173,13 @@ impl NbtList {
     pub fn into_wrapped(self) -> Vec<NbtCompound> {
         nbt_list_call_uniform!(
             self,
-            content,
-            content
+            (content) => content
                 .into_iter()
                 .map(|element| NbtCompound {
                     child_tags: vec![(String::new(), element.into_tag())]
                 })
                 .collect(),
-            vec![]
+            () => vec![]
         )
     }
 
@@ -220,16 +248,14 @@ impl Index<usize> for NbtList {
 
     fn index(&self, index: usize) -> &Self::Output {
         nbt_list_call_uniform!(
-            (self.index(index)),
-            panic!("Index out of bounds for empty list. Index {index}")
+            (self.index(index)) | panic!("Index out of bounds for empty list. Index {index}")
         )
     }
 }
 impl IndexMut<usize> for NbtList {
     fn index_mut(&mut self, index: usize) -> &mut Self::Output {
         nbt_list_call_uniform!(
-            (self.index_mut(index)),
-            panic!("Index out of bounds for empty list. Index {index}")
+            (self.index_mut(index)) | panic!("Index out of bounds for empty list. Index {index}")
         )
     }
 }
@@ -311,10 +337,14 @@ impl PrivateNbtCompatible for NbtList {
     where
         Self: Sized,
     {
-        nbt_list_call_uniform!(self, content, NbtList::ser_list_helper(content, bytes), {
-            bytes.put_u8(ids::END_ID);
-            bytes.put_i32(0);
-        })
+        nbt_list_call_uniform!(
+            self,
+            (content) => NbtList::ser_list_helper(content, bytes),
+            () => {
+                bytes.put_u8(ids::END_ID);
+                bytes.put_i32(0);
+            }
+        )
     }
 
     fn write_snbt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {

@@ -1,4 +1,4 @@
-use crate::{NbtCompound, NbtList, NbtTag};
+use crate::{nbt_list_call_uniform, NbtCompound, NbtList, NbtTag};
 use serde::de::value::{MapAccessDeserializer, SeqAccessDeserializer};
 use serde::{Deserialize, Serialize};
 
@@ -180,22 +180,15 @@ impl Serialize for NbtList {
                 $seq.end()
             }};
         }
-        use NbtList::*;
-        match self {
-            Byte(x) => helper_macro!(x),
-            Short(x) => helper_macro!(x),
-            Int(x) => helper_macro!(x),
-            Long(x) => helper_macro!(x),
-            Float(x) => helper_macro!(x),
-            Double(x) => helper_macro!(x),
-            String(x) => helper_macro!(x),
-            IntArray(x) => helper_macro!(x),
-            LongArray(x) => helper_macro!(x),
-            List(x) => helper_macro!(x),
-            Compound(x) => helper_macro!(x),
-            ByteArray(x) => helper_macro!(x, (ser, item, ser.serialize_element(item as &[u8]))),
-            End => serializer.serialize_seq(Some(0))?.end(),
-        }
+        nbt_list_call_uniform!(
+            (self) {
+                (
+                    Byte|Short|Int|Long|Float|Double|String|IntArray|LongArray|List|Compound
+                )(x) => helper_macro!(x),
+                (ByteArray)(x) => helper_macro!(x, (ser, item, ser.serialize_element(item as &[u8]))),
+                () => serializer.serialize_seq(Some(0))?.end()
+            }
+        )
     }
 }
 impl<'de> Deserialize<'de> for NbtList {
