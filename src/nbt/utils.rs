@@ -48,11 +48,10 @@ where
 {
     bytes
         .copy_to_bytes(len * N)
-        .chunks_exact(N)
-        .map(|chunk| {
-            let arr: [u8; N] = chunk.try_into().expect("chunk size mismatch");
-            from_be(arr)
-        })
+        .as_chunks::<N>()
+        .0
+        .iter()
+        .map(|chunk| from_be(*chunk))
         .collect()
 }
 
