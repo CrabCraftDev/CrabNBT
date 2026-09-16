@@ -1,5 +1,5 @@
 use crab_nbt::Nbt;
-use criterion::{BatchSize, Criterion, criterion_group, criterion_main};
+use criterion::{criterion_group, criterion_main, BatchSize, Criterion};
 
 #[path = "../tests/utils.rs"]
 mod utils;
