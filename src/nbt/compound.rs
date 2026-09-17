@@ -62,6 +62,19 @@ impl NbtCompound {
         bytes.put_u8(END_ID);
     }
 
+    pub fn size_hint(&self) -> usize {
+        const SIZE_BYTE: usize = i8::BITS as usize / 8;
+        const SIZE_SHORT: usize = i16::BITS as usize / 8;
+
+        self.child_tags
+            .iter()
+            .map(|(s, t)| {
+                let hint = NbtTag::size_hint(t);
+                SIZE_BYTE + SIZE_SHORT + s.len() + hint
+            })
+            .fold(SIZE_BYTE, std::ops::Add::add)
+    }
+
     pub fn serialize_content_to_writer<W: Write>(&self, mut writer: W) -> Result<(), Error> {
         writer.write_all(&self.serialize_content())?;
         Ok(())
