@@ -1,22 +1,51 @@
-use std::fmt::{self, Display, Formatter};
+use std::{
+    cmp::Ordering,
+    fmt::{self, Display, Formatter},
+};
 
 use crate::error::Error;
-use bytes::{Buf, BufMut, BytesMut};
+use bytes::{Buf, BufMut};
+
 use simd_cesu8::decode;
 
-pub const END_ID: u8 = 0;
-pub const BYTE_ID: u8 = 1;
-pub const SHORT_ID: u8 = 2;
-pub const INT_ID: u8 = 3;
-pub const LONG_ID: u8 = 4;
-pub const FLOAT_ID: u8 = 5;
-pub const DOUBLE_ID: u8 = 6;
-pub const BYTE_ARRAY_ID: u8 = 7;
-pub const STRING_ID: u8 = 8;
-pub const LIST_ID: u8 = 9;
-pub const COMPOUND_ID: u8 = 10;
-pub const INT_ARRAY_ID: u8 = 11;
-pub const LONG_ARRAY_ID: u8 = 12;
+// compatibility export
+pub use ids::*;
+
+pub mod ids {
+    pub const END_ID: u8 = 0;
+    pub const BYTE_ID: u8 = 1;
+    pub const SHORT_ID: u8 = 2;
+    pub const INT_ID: u8 = 3;
+    pub const LONG_ID: u8 = 4;
+    pub const FLOAT_ID: u8 = 5;
+    pub const DOUBLE_ID: u8 = 6;
+    pub const BYTE_ARRAY_ID: u8 = 7;
+    pub const STRING_ID: u8 = 8;
+    pub const LIST_ID: u8 = 9;
+    pub const COMPOUND_ID: u8 = 10;
+    pub const INT_ARRAY_ID: u8 = 11;
+    pub const LONG_ARRAY_ID: u8 = 12;
+}
+
+pub const fn get_nbt_type_name(id: u8) -> Option<&'static str> {
+    use ids::*;
+    Some(match id {
+        END_ID => "end",
+        BYTE_ID => "byte",
+        SHORT_ID => "short",
+        INT_ID => "int",
+        LONG_ID => "long",
+        FLOAT_ID => "float",
+        DOUBLE_ID => "double",
+        BYTE_ARRAY_ID => "byte array",
+        STRING_ID => "string",
+        LIST_ID => "list",
+        COMPOUND_ID => "compound",
+        INT_ARRAY_ID => "int array",
+        LONG_ARRAY_ID => "long array",
+        _ => return None,
+    })
+}
 
 pub fn get_nbt_string(bytes: &mut impl Buf) -> Result<String, Error> {
     let len = bytes.try_get_u16()? as usize;
@@ -25,7 +54,7 @@ pub fn get_nbt_string(bytes: &mut impl Buf) -> Result<String, Error> {
     Ok(string.to_string())
 }
 
-pub fn serialize_str_into(s: &str, bytes: &mut BytesMut) {
+pub fn serialize_str_into(s: &str, bytes: &mut impl BufMut) {
     if s.is_empty() {
         bytes.put_u16(0);
         return;
@@ -53,6 +82,31 @@ where
         .iter()
         .map(|chunk| from_be(*chunk))
         .collect()
+}
+
+/// Write an arbitrary list to the [`Formatter`] `f`.
+/// Intended for SNBT serialisation.
+///
+/// The output will look like this:
+/// `[{prefix}{elements{affix}, }*]`
+/// (Note that the last comma and space will be omitted)
+///
+/// e.g. `write_listlike(f, "L;", "l", [1,2,3])`
+///     will write `[L;1l, 2l, 3l]`
+pub(crate) fn write_listlike<T: Display, I: IntoIterator<Item = T>>(
+    f: &mut Formatter<'_>,
+    prefix: &'static str,
+    affix: &'static str,
+    arr: I,
+) -> fmt::Result {
+    write!(f, "[{prefix}")?;
+    join_formatted(
+        f,
+        ", ",
+        arr.into_iter()
+            .map(|x| move |f: &mut Formatter<'_>| write!(f, "{x}{affix}")),
+    )?;
+    write!(f, "]")
 }
 
 /// like [T]::join, but allowing for formatting
@@ -110,6 +164,33 @@ pub(crate) fn escape_string_value(s: &str) -> String {
     output.replace_range(0..1, &escape_char.to_string());
     output.push(escape_char);
     output
+}
+
+/// Determines the ordering of `a` in regards to `b`.
+/// This is basically [Iterator::cmp_by], which as of the time of writing unstable.
+/// Once that is stabilised, this function can be replaced.
+pub fn compare_by<I1, I2, F>(a: I1, b: I2, mut comparator: F) -> Ordering
+where
+    I1: IntoIterator,
+    I2: IntoIterator,
+    F: FnMut(I1::Item, I2::Item) -> Ordering,
+{
+    let mut i1 = a.into_iter();
+    let mut i2 = b.into_iter();
+    loop {
+        return match (i1.next(), i2.next()) {
+            (None, None) => Ordering::Equal,
+            (None, Some(_)) => Ordering::Less,
+            (Some(_), None) => Ordering::Greater,
+            (Some(a), Some(b)) => {
+                let comp = comparator(a, b);
+                if comp == Ordering::Equal {
+                    continue;
+                }
+                comp
+            }
+        };
+    }
 }
 
 #[cfg(test)]

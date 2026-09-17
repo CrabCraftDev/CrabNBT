@@ -1,3 +1,26 @@
+/// This is a secret trait to help the [`crate::nbt!`] macro handle [`str`] literals.
+/// It is unfortunately not possible to fully hide this trait as the macro needs to be able to use it at every call site.
+#[doc(hidden)]
+pub trait IntoNbtCompatible {
+    type Output;
+
+    fn into_nbt_compatible(self) -> Self::Output;
+}
+impl<T: ::crab_nbt::NbtCompatible> IntoNbtCompatible for T {
+    type Output = T;
+
+    fn into_nbt_compatible(self) -> Self::Output {
+        self
+    }
+}
+impl IntoNbtCompatible for &str {
+    type Output = String;
+
+    fn into_nbt_compatible(self) -> Self::Output {
+        self.to_string()
+    }
+}
+
 /// Macro that simplifies the creation of NBT using JSON/SNBT-like syntax.
 /// It takes a name and a content block, and returns an `Nbt` object.
 ///
@@ -83,11 +106,17 @@ macro_rules! nbt_inner {
     ([Byte; $($lit:literal),* $(,)?]) => {
         $crate::NbtTag::ByteArray(::bytes::Bytes::from_iter([$($lit),*]))
     };
-    ([$($lit:literal),* $(,)?]) => {
-        $crate::NbtTag::List(::std::vec![$($lit.into()),*])
+    ([]) => {
+        $crate::NbtTag::List($crate::NbtList::End)
+    };
+    ([$($lit:literal),+ $(,)?]) => {
+        {
+            use $crate::IntoNbtCompatible as _;
+            $crate::NbtTag::List((::std::vec![$($lit.into_nbt_compatible()),*]).into())
+        }
     };
     ([$($t:tt),* $(,)?]) => {
-        $crate::NbtTag::List(::std::vec![$(nbt_inner!($t).into()),*])
+        $crate::NbtTag::List((::std::vec![$(nbt_inner!($t)),*]).into())
     };
 
 }

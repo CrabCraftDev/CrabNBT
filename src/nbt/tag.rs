@@ -7,6 +7,32 @@ use std::cmp::Ordering;
 use std::fmt::{self, Display, Formatter};
 use std::io::Cursor;
 
+use crate::nbt::list::NbtList;
+use crate::nbt::nbt_trait::{NbtCompatible, PrivateNbtCompatible};
+
+macro_rules! call_uniform {
+    (($self:ident$(.$($expression:tt)+)?), $end_case:expr) => {
+        {
+            use self::NbtTag::*;
+            match $self {
+                End => $end_case,
+                Byte(x) => x$(.$($expression)*)?,
+                Short(x) => x$(.$($expression)*)?,
+                Int(x) => x$(.$($expression)*)?,
+                Long(x) => x$(.$($expression)*)?,
+                Float(x) => x$(.$($expression)*)?,
+                Double(x) => x$(.$($expression)*)?,
+                ByteArray(x) => x$(.$($expression)*)?,
+                String(x) => x$(.$($expression)*)?,
+                List(x) => x$(.$($expression)*)?,
+                Compound(x) => x$(.$($expression)*)?,
+                IntArray(x) => x$(.$($expression)*)?,
+                LongArray(x) => x$(.$($expression)*)?,
+            }
+        }
+    };
+}
+
 /// Enum representing the different types of NBT tags.
 /// Each variant corresponds to a different type of data that can be stored in an NBT tag.
 #[repr(u8)]
@@ -21,7 +47,7 @@ pub enum NbtTag {
     Double(f64) = DOUBLE_ID,
     ByteArray(Bytes) = BYTE_ARRAY_ID,
     String(String) = STRING_ID,
-    List(Vec<NbtTag>) = LIST_ID,
+    List(NbtList) = LIST_ID,
     Compound(NbtCompound) = COMPOUND_ID,
     IntArray(Vec<i32>) = INT_ARRAY_ID,
     LongArray(Vec<i64>) = LONG_ARRAY_ID,
@@ -99,41 +125,11 @@ impl NbtTag {
         bytes.freeze()
     }
 
-    pub fn serialize_data_into(&self, bytes: &mut BytesMut) {
-        match self {
-            NbtTag::End => {}
-            NbtTag::Byte(byte) => bytes.put_i8(*byte),
-            NbtTag::Short(short) => bytes.put_i16(*short),
-            NbtTag::Int(int) => bytes.put_i32(*int),
-            NbtTag::Long(long) => bytes.put_i64(*long),
-            NbtTag::Float(float) => bytes.put_f32(*float),
-            NbtTag::Double(double) => bytes.put_f64(*double),
-            NbtTag::ByteArray(byte_array) => {
-                bytes.put_i32(byte_array.len() as i32);
-                bytes.put_slice(byte_array);
-            }
-            NbtTag::String(string) => serialize_str_into(string, bytes),
-            NbtTag::List(list) => {
-                bytes.put_u8(list.first().unwrap_or(&NbtTag::End).get_type_id());
-                bytes.put_i32(list.len() as i32);
-                for nbt_tag in list {
-                    nbt_tag.serialize_data_into(bytes);
-                }
-            }
-            NbtTag::Compound(compound) => compound.serialize_content_into(bytes),
-            NbtTag::IntArray(int_array) => {
-                bytes.put_i32(int_array.len() as i32);
-                for int in int_array {
-                    bytes.put_i32(*int)
-                }
-            }
-            NbtTag::LongArray(long_array) => {
-                bytes.put_i32(long_array.len() as i32);
-                for long in long_array {
-                    bytes.put_i64(*long)
-                }
-            }
-        }
+    pub fn serialize_data_into(&self, bytes: &mut impl BufMut) {
+        call_uniform!(
+            (self.serialize_content_into(bytes)),
+            () // End has no data, so serialization is noop
+        );
     }
 
     pub fn deserialize(bytes: &mut impl Buf) -> Result<NbtTag, Error> {
@@ -146,66 +142,48 @@ impl NbtTag {
     }
 
     pub fn deserialize_data(bytes: &mut impl Buf, tag_id: u8) -> Result<NbtTag, Error> {
-        match tag_id {
-            END_ID => Ok(NbtTag::End),
-            BYTE_ID => {
-                let byte = bytes.try_get_i8()?;
-                Ok(NbtTag::Byte(byte))
-            }
-            SHORT_ID => {
-                let short = bytes.try_get_i16()?;
-                Ok(NbtTag::Short(short))
-            }
-            INT_ID => {
-                let int = bytes.try_get_i32()?;
-                Ok(NbtTag::Int(int))
-            }
-            LONG_ID => {
-                let long = bytes.try_get_i64()?;
-                Ok(NbtTag::Long(long))
-            }
-            FLOAT_ID => {
-                let float = bytes.try_get_f32()?;
-                Ok(NbtTag::Float(float))
-            }
-            DOUBLE_ID => {
-                let double = bytes.try_get_f64()?;
-                Ok(NbtTag::Double(double))
-            }
-            BYTE_ARRAY_ID => {
-                let len = bytes.try_get_i32()? as usize;
-                let byte_array = bytes.copy_to_bytes(len);
-                Ok(NbtTag::ByteArray(byte_array))
-            }
-            STRING_ID => Ok(NbtTag::String(get_nbt_string(bytes).unwrap())),
-            LIST_ID => {
-                let tag_type_id = bytes.try_get_u8()?;
-                let len = bytes.try_get_i32()?;
-                let mut list = Vec::with_capacity(len as usize);
-                for _ in 0..len {
-                    let tag = NbtTag::deserialize_data(bytes, tag_type_id)?;
-                    assert_eq!(tag.get_type_id(), tag_type_id);
-                    list.push(tag);
+        macro_rules! gen_match {
+            (
+                {
+                    target = $target:expr,
+                    bytes = $bytes:expr,
+                    end = $end:expr,
+                    else = $else:expr
+                },
+                $($tag_id:ident => $converter:expr),*
+            ) => {
+                {
+                    fn deser_helper<T: PrivateNbtCompatible>(bytes: &mut impl Buf) -> Result<T, Error> {
+                        T::deserialize_data(bytes)
+                    }
+                    match $target {
+                        END_ID => $end,
+                        $($tag_id => deser_helper($bytes).map($converter)),*,
+                        _ => $else
+                    }
                 }
-                Ok(NbtTag::List(list))
-            }
-            COMPOUND_ID => Ok(NbtTag::Compound(NbtCompound::deserialize_content(bytes)?)),
-            INT_ARRAY_ID => {
-                const BYTES: usize = size_of::<i32>();
-
-                let len = bytes.try_get_i32()? as usize;
-                let numbers = read_array::<i32, BYTES, _>(bytes, len, i32::from_be_bytes);
-                Ok(NbtTag::IntArray(numbers))
-            }
-            LONG_ARRAY_ID => {
-                const BYTES: usize = size_of::<i64>();
-
-                let len = bytes.try_get_i32()? as usize;
-                let numbers = read_array::<i64, BYTES, _>(bytes, len, i64::from_be_bytes);
-                Ok(NbtTag::LongArray(numbers))
-            }
-            _ => Err(Error::UnknownTagId(tag_id)),
+            };
         }
+        gen_match!(
+            {
+                target = tag_id,
+                bytes = bytes,
+                end = Ok(NbtTag::End),
+                else = Err(Error::UnknownTagId(tag_id))
+            },
+            BYTE_ID => NbtTag::Byte,
+            SHORT_ID => NbtTag::Short,
+            INT_ID => NbtTag::Int,
+            LONG_ID => NbtTag::Long,
+            FLOAT_ID => NbtTag::Float,
+            DOUBLE_ID => NbtTag::Double,
+            BYTE_ARRAY_ID => NbtTag::ByteArray,
+            STRING_ID => NbtTag::String,
+            LIST_ID => NbtTag::List,
+            COMPOUND_ID => NbtTag::Compound,
+            INT_ARRAY_ID => NbtTag::IntArray,
+            LONG_ARRAY_ID => NbtTag::LongArray
+        )
     }
 
     pub fn deserialize_data_from_cursor(
@@ -279,7 +257,7 @@ impl NbtTag {
         }
     }
 
-    pub fn extract_list(&self) -> Option<&Vec<NbtTag>> {
+    pub fn extract_list(&self) -> Option<&NbtList> {
         match self {
             NbtTag::List(list) => Some(list),
             _ => None,
@@ -306,6 +284,22 @@ impl NbtTag {
             _ => None,
         }
     }
+
+    /// Returns a [Some] with a reference to a dyn [NbtCompatible],
+    /// if this tag is not [NbtTag::End], else [None].
+    ///
+    /// See also: [NbtTag::as_nbt_compatible_mut]
+    pub fn as_nbt_compatible(&self) -> Option<&dyn NbtCompatible> {
+        Some(call_uniform!((self), return None))
+    }
+
+    /// Returns a [Some] with a mutable reference to a dyn [NbtCompatible],
+    /// if this tag is not [NbtTag::End], else [None].
+    ///
+    /// See also: [NbtTag::as_nbt_compatible]
+    pub fn as_nbt_compatible_mut(&mut self) -> Option<&mut dyn NbtCompatible> {
+        Some(call_uniform!((self), return None))
+    }
 }
 
 impl From<&str> for NbtTag {
@@ -328,37 +322,6 @@ impl From<bool> for NbtTag {
 
 impl Display for NbtTag {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        match self {
-            Self::End => Ok(()),
-            Self::Byte(x) => write!(f, "{x}b"),
-            Self::Short(x) => write!(f, "{x}s"),
-            Self::Int(x) => write!(f, "{x}"),
-            Self::Long(x) => write!(f, "{x}L"),
-            // using debug here matches Minecraft on whole numbers (3.0 instead of 3)
-            Self::Float(x) => write!(f, "{x:?}f"),
-            Self::Double(x) => write!(f, "{x:?}d"),
-            Self::ByteArray(arr) => write_listlike(f, "B; ", "B", arr.iter().map(|b| *b as i8)),
-            Self::String(s) => write!(f, "{}", escape_string_value(s)),
-            Self::List(list) => write_listlike(f, "", "", list),
-            Self::Compound(compound) => write!(f, "{compound}"),
-            Self::IntArray(arr) => write_listlike(f, "I; ", "", arr),
-            Self::LongArray(arr) => write_listlike(f, "L; ", "L", arr),
-        }
+        call_uniform!((self.write_snbt(f)), Ok(()))
     }
-}
-
-fn write_listlike<T: Display, I: IntoIterator<Item = T>>(
-    f: &mut Formatter<'_>,
-    prefix: &'static str,
-    affix: &'static str,
-    arr: I,
-) -> fmt::Result {
-    write!(f, "[{prefix}")?;
-    join_formatted(
-        f,
-        ", ",
-        arr.into_iter()
-            .map(|x| move |f: &mut Formatter<'_>| write!(f, "{x}{affix}")),
-    )?;
-    write!(f, "]")
 }

@@ -1,5 +1,5 @@
-use crate::{NbtCompound, NbtTag};
-use serde::de::value::MapAccessDeserializer;
+use crate::{nbt_list_call_uniform, NbtCompound, NbtList, NbtTag};
+use serde::de::value::{MapAccessDeserializer, SeqAccessDeserializer};
 use serde::{Deserialize, Serialize};
 
 impl Serialize for NbtTag {
@@ -24,14 +24,7 @@ impl Serialize for NbtTag {
                 seq.end()
             }
             NbtTag::String(string_val) => serializer.serialize_str(string_val),
-            NbtTag::List(list_items) => {
-                use serde::ser::SerializeSeq;
-                let mut seq = serializer.serialize_seq(Some(list_items.len()))?;
-                for item in list_items.iter() {
-                    seq.serialize_element(item)?;
-                }
-                seq.end()
-            }
+            NbtTag::List(list) => list.serialize(serializer),
             NbtTag::Compound(compound) => compound.serialize(serializer),
             NbtTag::IntArray(int_array) => {
                 use serde::ser::SerializeSeq;
@@ -102,15 +95,13 @@ impl<'de> Deserialize<'de> for NbtTag {
                 Ok(NbtTag::String(value.to_owned()))
             }
 
-            fn visit_seq<A>(self, mut seq: A) -> Result<Self::Value, A::Error>
+            fn visit_seq<A>(self, seq: A) -> Result<Self::Value, A::Error>
             where
                 A: serde::de::SeqAccess<'de>,
             {
-                let mut items = Vec::new();
-                while let Some(tag) = seq.next_element()? {
-                    items.push(tag);
-                }
-                Ok(NbtTag::List(items))
+                Ok(NbtTag::List(NbtList::deserialize(
+                    SeqAccessDeserializer::new(seq),
+                )?))
             }
 
             fn visit_map<A>(self, map: A) -> Result<Self::Value, A::Error>
@@ -168,5 +159,113 @@ impl<'de> Deserialize<'de> for NbtCompound {
         }
 
         deserializer.deserialize_map(NbtCompoundVisitor)
+    }
+}
+
+impl Serialize for NbtList {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        use serde::ser::SerializeSeq as _;
+        macro_rules! helper_macro {
+            ($content:ident) => {
+                helper_macro!($content, (seq, item, seq.serialize_element(item)))
+            };
+            ($content:ident, ($seq:ident, $item:ident, $ser_expr:expr)) => {{
+                let mut $seq = serializer.serialize_seq(Some($content.len()))?;
+                for $item in $content.iter() {
+                    $ser_expr?;
+                }
+                $seq.end()
+            }};
+        }
+        nbt_list_call_uniform!(
+            (self) {
+                (
+                    Byte|Short|Int|Long|Float|Double|String|IntArray|LongArray|List|Compound
+                )(x) => helper_macro!(x),
+                (ByteArray)(x) => helper_macro!(x, (ser, item, ser.serialize_element(item as &[u8]))),
+                () => serializer.serialize_seq(Some(0))?.end()
+            }
+        )
+    }
+}
+impl<'de> Deserialize<'de> for NbtList {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        struct NbtListVisitor;
+        impl<'de> serde::de::Visitor<'de> for NbtListVisitor {
+            type Value = NbtList;
+
+            fn visit_seq<A>(self, mut seq: A) -> Result<Self::Value, A::Error>
+            where
+                A: serde::de::SeqAccess<'de>,
+            {
+                struct ExpectedTagType(u8);
+                impl serde::de::Expected for ExpectedTagType {
+                    fn fmt(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
+                        use crate::nbt::utils::get_nbt_type_name;
+                        write!(
+                            formatter,
+                            "an nbt {}",
+                            get_nbt_type_name(self.0)
+                                .unwrap_or("<unknown type id. please create an issue>")
+                        )
+                    }
+                }
+                let mut list = match seq.next_element::<NbtTag>()? {
+                    None => return Ok(NbtList::End),
+                    Some(tag) => {
+                        macro_rules! helper {
+                            ($tag:ident) => {
+                                helper!($tag, [Byte, Short, Int, Long, Float, Double, ByteArray, String, List, Compound, IntArray, LongArray])
+                            };
+                            ($tag:ident, [$($variant:ident),+]) => {
+                                match $tag {
+                                    NbtTag::End => return Ok(NbtList::End),
+                                    $(
+                                        NbtTag::$variant(x) => NbtList::$variant({
+                                            let mut v = seq.size_hint().map(Vec::with_capacity).unwrap_or(vec![]);
+                                            v.push(x);
+                                            v
+                                        }),
+                                    )+
+                                }
+                            };
+                        }
+                        helper!(tag)
+                    }
+                };
+                while let Some(item) = seq.next_element::<NbtTag>()? {
+                    use serde::de::Error as _;
+                    macro_rules! helper {
+                        ($tag:ident, $list:ident) => {
+                            helper!($tag, $list, [Byte, Short, Int, Long, Float, Double, ByteArray, String, List, Compound, IntArray, LongArray])
+                        };
+                        ($tag:ident, $list:ident, [$($variant:ident),+]) => {
+                            match ($tag, &mut $list) {
+                                $(
+                                    (NbtTag::$variant(x), NbtList::$variant(v)) => { v.push(x); }
+                                )+,
+                                (_, _) => return Err(A::Error::invalid_type(
+                                    serde::de::Unexpected::Other(""),
+                                    &ExpectedTagType($list.get_content_type_id())
+                                ))
+                            }
+                        };
+                    }
+                    helper!(item, list);
+                }
+                Ok(list)
+            }
+
+            fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
+                write!(formatter, "an NBT List")
+            }
+        }
+        deserializer.deserialize_seq(NbtListVisitor)
     }
 }

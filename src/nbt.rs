@@ -1,4 +1,5 @@
 use crate::error::Error;
+use crate::nbt::nbt_trait::PrivateNbtCompatible as _;
 use bytes::{Buf, BufMut, Bytes, BytesMut};
 use crab_nbt::nbt::compound::NbtCompound;
 use crab_nbt::nbt::utils::*;
@@ -7,6 +8,8 @@ use std::io::{Cursor, Write};
 use std::ops::Deref;
 
 pub mod compound;
+pub mod list;
+pub(crate) mod nbt_trait;
 pub mod tag;
 pub mod utils;
 

@@ -1,10 +1,12 @@
-use crate::nbt::utils::{escape_name, join_formatted, serialize_str_into};
+use crate::nbt::list::NbtList;
+use crate::nbt::nbt_trait::PrivateNbtCompatible;
+use crate::nbt::utils::{escape_name, ids, join_formatted, serialize_str_into};
 use crate::{error::Error, Nbt};
 use bytes::{Buf, BufMut, Bytes, BytesMut};
 use crab_nbt::nbt::tag::NbtTag;
 use crab_nbt::nbt::utils::{get_nbt_string, END_ID};
 use derive_more::Into;
-use std::fmt::{self, Debug, Display, Formatter};
+use std::fmt::{self, Debug, Display, Formatter, Result as FmtResult};
 use std::io::{Cursor, Write};
 use std::vec::IntoIter;
 
@@ -51,15 +53,6 @@ impl NbtCompound {
         let mut bytes = BytesMut::new();
         self.serialize_content_into(&mut bytes);
         bytes.freeze()
-    }
-
-    pub fn serialize_content_into(&self, bytes: &mut BytesMut) {
-        for (name, tag) in &self.child_tags {
-            bytes.put_u8(tag.get_type_id());
-            serialize_str_into(name, bytes);
-            tag.serialize_data_into(bytes);
-        }
-        bytes.put_u8(END_ID);
     }
 
     pub fn serialize_content_to_writer<W: Write>(&self, mut writer: W) -> Result<(), Error> {
@@ -115,7 +108,7 @@ impl NbtCompound {
         self.get(name).and_then(|tag| tag.extract_string())
     }
 
-    pub fn get_list(&self, name: &str) -> Option<&Vec<NbtTag>> {
+    pub fn get_list(&self, name: &str) -> Option<&NbtList> {
         self.get(name).and_then(|tag| tag.extract_list())
     }
 
@@ -180,5 +173,36 @@ impl Display for NbtCompound {
         join_formatted(f, ", ", iterator)?;
 
         write!(f, "}}")
+    }
+}
+impl PrivateNbtCompatible for NbtCompound {
+    fn write_snbt(&self, f: &mut Formatter<'_>) -> FmtResult {
+        write!(f, "{self}")
+    }
+
+    fn deserialize_data(bytes: &mut impl Buf) -> Result<Self, Error>
+    where
+        Self: Sized,
+    {
+        NbtCompound::deserialize_content(bytes)
+    }
+
+    fn serialize_content_into(&self, bytes: &mut impl BufMut)
+    where
+        Self: Sized,
+    {
+        for (name, tag) in &self.child_tags {
+            bytes.put_u8(tag.get_type_id());
+            serialize_str_into(name, bytes);
+            tag.serialize_data_into(bytes);
+        }
+        bytes.put_u8(END_ID);
+    }
+
+    fn get_id() -> u8
+    where
+        Self: Sized,
+    {
+        ids::COMPOUND_ID
     }
 }
